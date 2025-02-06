@@ -1,0 +1,27 @@
+{
+  "name": "dagify",
+  "version": "1.0.0",
+  "description": "A lightweight DAG-based reactive state management library.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "brittle ./test.js",
+    "bare:test": "bare ./test.js"
+  },
+  "devDependencies": {
+    "brittle": "^3.10.0"
+  },
+  "keywords": [
+    "reactivity",
+    "dag",
+    "state-management",
+    "rxjs",
+    "reactive"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zacharygriffee/dagify.git"
+  },
+  "author": "Zachary Griffee",
+  "license": "MIT"
+}
