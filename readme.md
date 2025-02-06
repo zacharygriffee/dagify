@@ -1,8 +1,8 @@
 # Dagify
 
 [![npm version](https://img.shields.io/npm/v/dagify.svg)](https://www.npmjs.com/package/dagify)
-[![Build Status](https://img.shields.io/travis/yourusername/dagify.svg)](https://travis-ci.org/yourusername/dagify)
-[![License](https://img.shields.io/npm/l/dagify.svg)](LICENSE)
+[![Build Status](https://img.shields.io/travis/zacharygriffee/dagify.svg)](https://travis-ci.org/zacharygriffee/dagify)
+[![License](https://img.shields.io/npm/l/dagify.svg)](license.md)
 
 Dagify is a lightweight, functional-reactive programming (FRP) library that allows you to create reactive nodes—both stateful and computed—that automatically propagate changes through a directed acyclic graph (DAG) of dependencies. It provides RxJS-compatible APIs along with features like batched updates, error handling, completion, and flexible subscription options.
 
