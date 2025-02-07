@@ -11,8 +11,8 @@ Dagify is a lightweight, functional-reactive programming (FRP) library that allo
 - **Error Handling:** Computed nodes propagate errors via an `error` callback.
 - **Completion:** Nodes can be marked complete so that no further updates are emitted.
 - **Once Subscriptions:** Subscribe once and automatically unsubscribe after the first emission.
-- **Automatic Dependency Cleanup:** Computed nodes clean up their dependency subscriptions when there are no active subscribers, and reinitialize them when needed.
-- **RxJS Compatibility:** Built on a Subject-like API for interoperability.
+- **Automatic Dependency Cleanup:** Computed nodes automatically clean up their dependency subscriptions when there are no active subscribers and reinitialize them when needed.
+- **RxJS Compatibility:** Built on a Subject-like API for seamless interoperability.
 
 ## Installation
 
@@ -110,7 +110,9 @@ node.set(200); // No further updates emitted.
 
 ### Once Subscriptions
 
-Subscribe once to automatically unsubscribe after the first update:
+Dagify supports one-time subscriptions via two interfaces: `subscribeOnce` and the `once` property. Both will automatically unsubscribe after the first emission.
+
+Using `subscribeOnce`:
 
 ```js
 import { createNode } from "dagify";
@@ -121,19 +123,29 @@ node.set(1); // Logs "Once: 1"
 // Subsequent updates will not trigger the once subscriber.
 ```
 
+Or using the `once` subscription interface:
+
+```js
+import { createNode } from "dagify";
+
+const node = createNode(0);
+node.once.subscribe(value => console.log("Once (via once):", value));
+node.set(1); // Logs "Once (via once): 1"
+```
+
 ## API
 
 ### `createNode(fnOrValue, dependencies)`
 
 - **Parameters:**
-    - `fnOrValue` (function | any): Either a function for computed nodes or an initial value.
-    - `dependencies` (array, optional): An array of nodes on which the computed node depends.
+  - `fnOrValue` (function | any): Either a function for computed nodes or an initial value.
+  - `dependencies` (Array, optional): An array of nodes (or RxJS observables) on which the computed node depends.
 - **Returns:** A new reactive node.
 
 ### `batch(fn)`
 
 - **Parameters:**
-    - `fn` (function): A function containing multiple updates.
+  - `fn` (function): A function containing multiple updates.
 - **Description:** Executes multiple updates in batch mode so that subscribers only see the final computed value.
 
 ### Subscription Methods
@@ -142,10 +154,13 @@ node.set(1); // Logs "Once: 1"
   Subscribes to changes. The observer can be a function or an object with `next`, `error`, and `complete` callbacks. The initial value is emitted asynchronously.
 
 - **skip.subscribe(observer):**  
-  Works like `subscribe` but skips the initial emission.
+  Works like `subscribe` but skips the immediate initial emission.
 
 - **subscribeOnce(observer):**  
   Subscribes to the node and automatically unsubscribes after the first emission.
+
+- **once.subscribe(observer):**  
+  An alternative interface for a one-time subscription that automatically unsubscribes after the first update.
 
 - **error(err):**  
   Manually triggers error notifications for the node.

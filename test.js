@@ -1,6 +1,20 @@
 import { test, solo } from "brittle";
-import { createNode, batch } from "./index.js";
-
+import {createNode, batch, fromObservable} from "./index.js";
+import { createOperatorPipeline } from "operator-pipeline";
+import {
+    combineLatest,
+    combineLatestWith, finalize,
+    interval,
+    isObservable,
+    of,
+    pipe,
+    startWith,
+    switchMap,
+    take,
+    tap
+} from "rxjs";
+import {isRxObservable} from "./lib/isRxObservable.js";
+import {takeUntilCompleted} from "./lib/takeUntilCompleted.js";
 // Helper: delay function
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -85,7 +99,7 @@ test("createNode should unsubscribe correctly", (t) => {
     t.plan(1);
     const node = createNode(0);
 
-    const unsubscribe = node.subscribe(() => {
+    const unsubscribe = node.skip.subscribe((a) => {
         t.fail("Subscriber should not be called after unsubscribe");
     });
 
@@ -182,7 +196,7 @@ test("computed node should notify error callback when computation throws", async
     }, [source]);
 
     faulty.subscribe({
-        next: () => t.fail("Should not receive a next value"),
+        next: (x) => t.fail("Should not receive a next value"),
         error: (err) => t.is(err.message, "test error", "Error callback triggered with proper message")
     });
 
@@ -196,8 +210,8 @@ test("computed node should notify error callback when computation throws", async
 test("node.error should trigger error callbacks", async (t) => {
     t.plan(1);
     const node = createNode(10);
-    node.subscribe({
-        next: () => t.fail("Should not receive next value"),
+    node.skip.subscribe({
+        next: (x) => t.fail("Should not receive next value"),
         error: (err) => t.is(err.message, "explicit error", "Direct error call notifies subscribers")
     });
     node.error(new Error("explicit error"));
@@ -212,8 +226,8 @@ test("complete() should notify subscribers and prevent further updates", async (
     let completeCalled = false;
     let updateCalled = false;
 
-    node.subscribe({
-        next: (val) => { updateCalled = true; },
+    node.skip.subscribe({
+        next: (val) => updateCalled = true,
         complete: () => { completeCalled = true; t.pass("Complete callback called"); }
     });
 
@@ -245,7 +259,7 @@ test("subscribeOnce should only trigger a single emission", async (t) => {
     const node = createNode(0);
     let callCount = 0;
 
-    node.subscribeOnce((val) => {
+    node.once.subscribe((val) => {
         callCount++;
     });
 
@@ -326,4 +340,22 @@ test("skip subscription should not emit the initial value", async (t) => {
     node.set(20);
     await delay(50);
     t.ok(called, "Skip subscription received update after value change");
+});
+
+
+test("use an rxjs observable as a dependency", async t => {
+    // Create a constant node.
+    let finalized = false;
+    const x = createNode(10);
+    const y = createNode(([x, intervalNode]) =>  x + intervalNode, [x, interval(50).pipe(startWith(0), takeUntilCompleted(x), tap({complete: () => finalized = true}))]);
+
+    // Wait 1000ms so that the interval has time to emit several values.
+    await delay(500);
+
+    t.is(y.value, 18, "y should be 18");
+
+    x.complete();
+    y.complete();
+    await delay();
+    t.ok(finalized, "Finalization of interval happened");
 });

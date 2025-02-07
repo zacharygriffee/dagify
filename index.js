@@ -1,4 +1,5 @@
 import { ReactiveNode } from "./lib/ReactiveNode.js";
+import { fromObservable } from "./lib/fromObservable.js";
 
 /**
  * Creates a new reactive node.
@@ -50,5 +51,6 @@ const createNode = (fnOrValue, dependencies = []) => new ReactiveNode(fnOrValue,
  * // Subscribers will only see the final value (3).
  */
 const batch = (fn) => ReactiveNode.batch(fn);
+const isDagifyNode = (obj) => !!obj?.isDagifyNode;
 
-export { createNode, batch };
+export { createNode, batch, fromObservable, isDagifyNode };
