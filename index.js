@@ -1,5 +1,6 @@
-import { ReactiveNode } from "./lib/ReactiveNode.js";
-import { fromObservable } from "./lib/fromObservable.js";
+import {ReactiveNode} from "./lib/ReactiveNode.js";
+import {fromObservable} from "./lib/fromObservable.js";
+import {ReactiveGraph} from "./lib/ReactiveGraph.js";
 
 /**
  * Creates a new reactive node.
@@ -29,7 +30,7 @@ import { fromObservable } from "./lib/fromObservable.js";
  * count.set(5); // Logs: "Double: 10"
  */
 const createNode = (fnOrValue, dependencies = []) => new ReactiveNode(fnOrValue, dependencies);
-
+const createGraph = (config) => new ReactiveGraph(config);
 /**
  * Executes multiple updates in batch mode to optimize performance.
  *
@@ -51,6 +52,5 @@ const createNode = (fnOrValue, dependencies = []) => new ReactiveNode(fnOrValue,
  * // Subscribers will only see the final value (3).
  */
 const batch = (fn) => ReactiveNode.batch(fn);
-const isDagifyNode = (obj) => !!obj?.isDagifyNode;
 
-export { createNode, batch, fromObservable, isDagifyNode };
+export {createNode, createGraph, batch, fromObservable};

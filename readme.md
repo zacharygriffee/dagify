@@ -6,13 +6,17 @@ Dagify is a lightweight, functional-reactive programming (FRP) library that allo
 
 - **Stateful Nodes:** Create nodes that hold a value and can be updated manually.
 - **Computed Nodes:** Derive new nodes from one or more dependencies that automatically recompute when any dependency changes.
+- **Reactive Graph Support:** Organize nodes into a `ReactiveGraph` for structured dependency management.
+- **RxJS Observable Integration:** Convert RxJS observables into Dagify nodes using `fromObservable()`.
 - **Batched Updates:** Group multiple updates together so that subscribers receive only the final value.
 - **Skip Subscriptions:** Option to subscribe without receiving an initial value.
 - **Error Handling:** Computed nodes propagate errors via an `error` callback.
 - **Completion:** Nodes can be marked complete so that no further updates are emitted.
 - **Once Subscriptions:** Subscribe once and automatically unsubscribe after the first emission.
 - **Automatic Dependency Cleanup:** Computed nodes automatically clean up their dependency subscriptions when there are no active subscribers and reinitialize them when needed.
+- **Cycle Prevention:** The `ReactiveGraph` class ensures that adding edges between nodes does not create cycles.
 - **RxJS Compatibility:** Built on a Subject-like API for seamless interoperability.
+- **Custom RxJS Operator:** `takeUntilCompleted()` operator allows observables to complete when another observable completes.
 
 ## Installation
 
@@ -48,6 +52,44 @@ const double = createNode(
 double.subscribe(value => console.log("Double:", value));
 // Changing count updates double automatically:
 count.set(5); // Logs: "Double: 10"
+```
+
+### Creating a Reactive Graph
+
+Dagify supports managing nodes in a structured manner using `ReactiveGraph`. This allows you to track node dependencies and prevent cycles.
+
+```js
+import { createGraph, createNode } from "dagify";
+
+const graph = createGraph();
+const a = createNode(1);
+const b = createNode(2);
+const sum = createNode(([x, y]) => x + y, [a, b]);
+
+graph.addNode("a", a);
+graph.addNode("b", b);
+graph.addNode("sum", sum);
+graph.connect("a", "sum");
+graph.connect("b", "sum");
+
+sum.subscribe(value => console.log("Sum:", value));
+
+a.set(3); // Logs: "Sum: 5"
+b.set(4); // Logs: "Sum: 7"
+```
+
+### Using `fromObservable`
+
+Dagify allows wrapping RxJS observables into reactive nodes, enabling seamless interoperability.
+
+```js
+import { fromObservable, createNode } from "dagify";
+import { interval } from "rxjs";
+
+const obs = interval(1000);
+const node = fromObservable(obs, 0);
+
+node.subscribe(value => console.log("Tick:", value));
 ```
 
 ### Batched Updates
@@ -133,6 +175,26 @@ node.once.subscribe(value => console.log("Once (via once):", value));
 node.set(1); // Logs "Once (via once): 1"
 ```
 
+### Custom RxJS Operator: `takeUntilCompleted`
+
+Dagify provides a custom operator to complete a source observable when another observable completes.
+
+```js
+import { takeUntilCompleted } from "dagify";
+import { interval, Subject } from "rxjs";
+
+const stopNotifier = new Subject();
+const source = interval(1000).pipe(takeUntilCompleted(stopNotifier));
+
+source.subscribe({
+  next: (value) => console.log("Tick:", value),
+  complete: () => console.log("Stopped"),
+});
+
+setTimeout(() => stopNotifier.complete(), 5000);
+// After 5 seconds, the observable stops.
+```
+
 ## API
 
 ### `createNode(fnOrValue, dependencies)`
@@ -141,6 +203,12 @@ node.set(1); // Logs "Once (via once): 1"
   - `fnOrValue` (function | any): Either a function for computed nodes or an initial value.
   - `dependencies` (Array, optional): An array of nodes (or RxJS observables) on which the computed node depends.
 - **Returns:** A new reactive node.
+
+### `createGraph(config)`
+
+- **Parameters:**
+  - `config` (Object, optional): Graph configuration options.
+- **Returns:** A new `ReactiveGraph` instance.
 
 ### `batch(fn)`
 

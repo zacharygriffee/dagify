@@ -1,20 +1,7 @@
-import { test, solo } from "brittle";
-import {createNode, batch, fromObservable} from "./index.js";
-import { createOperatorPipeline } from "operator-pipeline";
-import {
-    combineLatest,
-    combineLatestWith, finalize,
-    interval,
-    isObservable,
-    of,
-    pipe,
-    startWith,
-    switchMap,
-    take,
-    tap
-} from "rxjs";
-import {isRxObservable} from "./lib/isRxObservable.js";
-import {takeUntilCompleted} from "./lib/takeUntilCompleted.js";
+import {solo, test} from "brittle";
+import {batch, createNode} from "../index.js";
+import {interval, startWith, tap} from "rxjs";
+import {takeUntilCompleted} from "../lib/takeUntilCompleted.js";
 // Helper: delay function
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
