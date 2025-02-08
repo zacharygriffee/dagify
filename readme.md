@@ -12,10 +12,10 @@ Dagify is a lightweight functional-reactive programming (FRP) library that allow
   Derive new nodes from one or more dependencies that automatically recompute when any dependency changes. Computed functions can return either a plain (synchronous) value or an asynchronous source (Promise or Observable). In the latter case, the node is flagged as asynchronous.
 
 - **Reactive Graph Support:**  
-  Organize nodes into a `ReactiveGraph` for structured dependency management and automatic cycle prevention.
+  Organize nodes into a `ReactiveGraph` for structured dependency management, automatic cycle prevention, and internal Buffer key handling.
 
 - **RxJS Observable Integration:**  
-  Observables passed as dependencies are automatically converted into reactive nodes. Computed nodes can also return observables for asynchronous computations.
+  Observables passed as dependencies are automatically converted into reactive nodes. Computed nodes can also return observables for asynchronous computations. Additionally, each node exposes a `toObservable()` method for seamless RxJS interoperation.
 
 - **Batched Updates:**  
   Group multiple updates together so that subscribers receive only the final value.
@@ -34,6 +34,9 @@ Dagify is a lightweight functional-reactive programming (FRP) library that allow
 
 - **Automatic Dependency Cleanup:**  
   Computed nodes automatically clean up their dependency subscriptions when there are no active subscribers and reinitialize them when needed.
+
+- **Enhanced Dependency Management:**  
+  `addDependency()` and `removeDependency()` methods now accept either a single ReactiveNode or an array of ReactiveNodes, simplifying bulk management.
 
 - **Cycle Prevention:**  
   The `ReactiveGraph` class ensures that adding edges between nodes does not create cycles.
@@ -102,9 +105,22 @@ console.log("asyncDouble is async?", asyncDouble.isAsync); // true
 asyncDouble.subscribe(value => console.log("Async double:", value));
 ```
 
+### Converting a Node to an Observable
+
+Dagify nodes expose a `toObservable()` method, making it easy to integrate with RxJS operators (for instance, to debounce or throttle updates).
+
+```js
+import { createNode } from "dagify";
+import { debounceTime } from "rxjs/operators";
+
+const node = createNode(10);
+const debounced$ = node.toObservable().pipe(debounceTime(200));
+debounced$.subscribe(value => console.log("Debounced:", value));
+```
+
 ### Creating a Reactive Graph
 
-Dagify supports managing nodes in a structured manner using `ReactiveGraph`. This allows you to track node dependencies and prevent cycles.
+Dagify supports managing nodes in a structured manner using `ReactiveGraph`. This allows you to track node dependencies, prevent cycles, and handle Buffer key encoding internally.
 
 ```js
 import { createGraph, createNode } from "dagify";
@@ -179,7 +195,7 @@ Computed nodes propagate errors if their computation fails, and you can complete
 ```js
 import { createNode } from "dagify";
 
-// Computed node that throws an error
+// Computed node that throws an error:
 const faulty = createNode(([a]) => {
   throw new Error("Computation failed");
 }, [createNode(5)]);
@@ -222,6 +238,24 @@ import { createNode } from "dagify";
 const node = createNode(0);
 node.once.subscribe(value => console.log("Once (via once):", value));
 node.set(1); // Logs "Once (via once): 1"
+```
+
+### Enhanced Dependency Management
+
+Dagify now supports adding or removing dependencies in bulk by passing an array to `addDependency` or `removeDependency`. This simplifies managing multiple dependencies at once.
+
+```js
+import { createNode } from "dagify";
+
+const dep1 = createNode(1);
+const dep2 = createNode(2);
+const computed = createNode(([a, b]) => a + b, [dep1]);
+
+// Add multiple dependencies:
+computed.addDependency([dep2]);
+
+// Remove multiple dependencies:
+computed.removeDependency([dep1, dep2]);
 ```
 
 ### Custom RxJS Operator: `takeUntilCompleted`
