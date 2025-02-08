@@ -1,9 +1,9 @@
 import {solo, test} from "brittle";
 import {batch, createNode} from "../index.js";
-import {interval, startWith, tap} from "rxjs";
+import {concatMap, delay, interval, of, startWith, take, tap} from "rxjs";
 import {takeUntilCompleted} from "../lib/takeUntilCompleted.js";
-// Helper: delay function
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// Helper: sleep function
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test("createNode should initialize with a value", (t) => {
     const node = createNode(10);
@@ -189,7 +189,7 @@ test("computed node should notify error callback when computation throws", async
 
     // Trigger recomputation by updating the dependency.
     source.set(6);
-    await delay(50);
+    await sleep(50);
 });
 
 
@@ -202,7 +202,7 @@ test("node.error should trigger error callbacks", async (t) => {
         error: (err) => t.is(err.message, "explicit error", "Direct error call notifies subscribers")
     });
     node.error(new Error("explicit error"));
-    await delay(50);
+    await sleep(50);
 });
 
 /* === Completion Tests === */
@@ -221,7 +221,7 @@ test("complete() should notify subscribers and prevent further updates", async (
     node.complete();
     // Attempt to update after completion.
     node.set(200);
-    await delay(50);
+    await sleep(50);
 
     t.ok(completeCalled, "Complete was called");
     t.absent(updateCalled, "No update after completion");
@@ -236,7 +236,7 @@ test("subscribing to a completed node should immediately trigger complete", asyn
         next: () => t.fail("No value should be emitted"),
         complete: () => t.pass("Complete immediately notified")
     });
-    await delay(50);
+    await sleep(50);
 });
 
 /* === Subscribe Once Tests === */
@@ -252,7 +252,7 @@ test("subscribeOnce should only trigger a single emission", async (t) => {
 
     node.set(1);
     node.set(2);
-    await delay(50);
+    await sleep(50);
     t.is(callCount, 1, "subscribeOnce only triggered once");
 });
 
@@ -266,7 +266,7 @@ test("computed node should cleanup dependency subscriptions when no subscribers 
     // Subscribe and then immediately unsubscribe.
     const unsub = computed.subscribe(() => {});
     unsub();
-    await delay(50);
+    await sleep(50);
     t.is(computed.subscribers.size, 0, "All subscribers removed");
     t.ok(!computed._dependencySubscriptions || computed._dependencySubscriptions.length === 0, "Dependency subscriptions cleaned up");
 });
@@ -279,7 +279,7 @@ test("new subscription to computed node reinitializes dependency subscriptions",
     // Subscribe then unsubscribe to clean up dependencies.
     let unsub = computed.subscribe(() => {});
     unsub();
-    await delay(50);
+    await sleep(50);
 
     t.ok(!computed._dependencySubscriptions || computed._dependencySubscriptions.length === 0, "Dependency subscriptions cleaned up");
 
@@ -287,7 +287,7 @@ test("new subscription to computed node reinitializes dependency subscriptions",
     computed.subscribe((v) => t.is(v, 3, "New subscriber receives computed value"));
     t.ok(computed._dependencySubscriptions && computed._dependencySubscriptions.length > 0, "Dependency subscriptions reinitialized");
     // Do not change the dependency value, so the new subscriber immediately gets the current value 3.
-    await delay(50);
+    await sleep(50);
 });
 
 test("new subscription receives immediate value and then update", async (t) => {
@@ -298,12 +298,12 @@ test("new subscription receives immediate value and then update", async (t) => {
     const values = [];
     computed.subscribe((v) => values.push(v));
     // Immediately, the subscriber should receive 3.
-    await delay(50);
+    await sleep(50);
     t.alike(values, [3], "Immediate emission is 3");
 
     // Update dependency: now computed should become 4.
     dep.set(3);
-    await delay(50);
+    await sleep(50);
     t.alike(values, [3, 4], "After update, emissions are [3, 4]");
 });
 
@@ -321,11 +321,11 @@ test("skip subscription should not emit the initial value", async (t) => {
     });
 
     // Wait a bit to ensure no initial emission is delivered.
-    await delay(50);
+    await sleep(50);
     t.absent(called, "No emission on subscription");
 
     node.set(20);
-    await delay(50);
+    await sleep(50);
     t.ok(called, "Skip subscription received update after value change");
 });
 
@@ -337,12 +337,71 @@ test("use an rxjs observable as a dependency", async t => {
     const y = createNode(([x, intervalNode]) =>  x + intervalNode, [x, interval(50).pipe(startWith(0), takeUntilCompleted(x), tap({complete: () => finalized = true}))]);
 
     // Wait 1000ms so that the interval has time to emit several values.
-    await delay(500);
+    await sleep(500);
 
     t.is(y.value, 18, "y should be 18");
 
     x.complete();
     y.complete();
-    await delay();
+    await sleep();
     t.ok(finalized, "Finalization of interval happened");
+});
+
+test("a dagify node can be passed an observable...", async t => {
+    t.plan(5);
+    const x = createNode(interval(10).pipe(take(5), startWith(0)));
+    let i = 0;
+    x.subscribe(o => {
+        t.is(o, i++);
+    });
+});
+
+/* === Async Computed Node Tests === */
+
+// Test that a computed node returning a Promise updates its value asynchronously.
+test("computed node handles promise async computation", async (t) => {
+    t.plan(2);
+    const dep = createNode(5);
+    const asyncPromiseNode = createNode(([a]) => {
+        // Return a promise that resolves after 50ms.
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(a * 2), 50);
+        });
+    }, [dep]);
+
+    // Immediately after compute(), the node should be marked as async.
+    t.ok(asyncPromiseNode.isAsync, "Computed node should be marked async when using a promise");
+
+    // Wait enough time for the promise to resolve.
+    await sleep(100);
+    t.is(asyncPromiseNode.value, 10, "Computed node should update its value from the promise");
+});
+
+// Test that a computed node returning an Observable updates its value asynchronously.
+test("computed node handles observable async computation", async (t) => {
+    t.plan(2);
+    const dep = createNode(4);
+    const asyncObservableNode = createNode(([a]) => {
+        // Return an observable that emits a value after a sleep.
+        return of(a + 3).pipe(delay(50));
+    }, [dep]);
+
+    // Immediately after compute(), the node should be marked as async.
+    t.ok(asyncObservableNode.isAsync, "Computed node should be marked async when using an observable");
+
+    // Wait enough time for the observable to emit.
+    await sleep(100);
+    t.is(asyncObservableNode.value, 7, "Computed node should update its value from the observable");
+});
+
+// Test that a computed node returning a plain (synchronous) value is not marked async.
+test("computed node remains sync when returning a plain value", async (t) => {
+    t.plan(2);
+    const dep = createNode(10);
+    const syncComputed = createNode(([a]) => a + 1, [dep]);
+
+    // Wait briefly to let any asynchronous processes (if any) settle.
+    await sleep(50);
+    t.absent(syncComputed.isAsync, "Computed node should not be marked async when returning a plain value");
+    t.is(syncComputed.value, 11, "Computed node computes synchronously as expected");
 });

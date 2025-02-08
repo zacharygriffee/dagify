@@ -1,22 +1,48 @@
 # Dagify
 
-Dagify is a lightweight, functional-reactive programming (FRP) library that allows you to create reactive nodes—both stateful and computed—that automatically propagate changes through a directed acyclic graph (DAG) of dependencies. It provides RxJS-compatible APIs along with features like batched updates, error handling, completion, and flexible subscription options.
+Dagify is a lightweight functional-reactive programming (FRP) library that allows you to create reactive nodes—both stateful and computed—that automatically propagate changes through a directed acyclic graph (DAG) of dependencies. It provides RxJS-compatible APIs along with features like batched updates, error handling, completion, flexible subscription options, and auto-detection of asynchronous sources.
 
 ## Features
 
-- **Stateful Nodes:** Create nodes that hold a value and can be updated manually.
-- **Computed Nodes:** Derive new nodes from one or more dependencies that automatically recompute when any dependency changes.
-- **Reactive Graph Support:** Organize nodes into a `ReactiveGraph` for structured dependency management.
-- **RxJS Observable Integration:** Observables passed as dependencies are automatically converted into reactive nodes.
-- **Batched Updates:** Group multiple updates together so that subscribers receive only the final value.
-- **Skip Subscriptions:** Option to subscribe without receiving an initial value.
-- **Error Handling:** Computed nodes propagate errors via an `error` callback.
-- **Completion:** Nodes can be marked complete so that no further updates are emitted.
-- **Once Subscriptions:** Subscribe once and automatically unsubscribe after the first emission.
-- **Automatic Dependency Cleanup:** Computed nodes automatically clean up their dependency subscriptions when there are no active subscribers and reinitialize them when needed.
-- **Cycle Prevention:** The `ReactiveGraph` class ensures that adding edges between nodes does not create cycles.
-- **RxJS Compatibility:** Built on a Subject-like API for seamless interoperability.
-- **Custom RxJS Operator:** `takeUntilCompleted()` operator allows observables to complete when another observable completes.
+- **Stateful Nodes:**  
+  Create nodes that hold a value and can be updated manually.  
+  Dagify automatically detects if a node’s initial value is asynchronous (e.g. an RxJS Observable or Promise) and marks it as such.
+
+- **Computed Nodes:**  
+  Derive new nodes from one or more dependencies that automatically recompute when any dependency changes. Computed functions can return either a plain (synchronous) value or an asynchronous source (Promise or Observable). In the latter case, the node is flagged as asynchronous.
+
+- **Reactive Graph Support:**  
+  Organize nodes into a `ReactiveGraph` for structured dependency management and automatic cycle prevention.
+
+- **RxJS Observable Integration:**  
+  Observables passed as dependencies are automatically converted into reactive nodes. Computed nodes can also return observables for asynchronous computations.
+
+- **Batched Updates:**  
+  Group multiple updates together so that subscribers receive only the final value.
+
+- **Skip Subscriptions:**  
+  Subscribe without receiving an initial value.
+
+- **Error Handling:**  
+  Computed nodes propagate errors via an `error` callback.
+
+- **Completion:**  
+  Nodes can be marked as complete so that no further updates are emitted.
+
+- **Once Subscriptions:**  
+  Subscribe once and automatically unsubscribe after the first emission.
+
+- **Automatic Dependency Cleanup:**  
+  Computed nodes automatically clean up their dependency subscriptions when there are no active subscribers and reinitialize them when needed.
+
+- **Cycle Prevention:**  
+  The `ReactiveGraph` class ensures that adding edges between nodes does not create cycles.
+
+- **RxJS Compatibility:**  
+  Built on a Subject-like API for seamless interoperability with RxJS.
+
+- **Custom RxJS Operator:**  
+  The `takeUntilCompleted()` operator allows observables to complete when another observable (such as a node) completes.
 
 ## Installation
 
@@ -30,19 +56,31 @@ npm install dagify
 
 ### Creating a Stateful Node
 
+Dagify nodes automatically detect whether the initial value is synchronous or asynchronous. For example, if you pass an observable, the node marks itself as asynchronous.
+
 ```js
 import { createNode } from "dagify";
+import { interval, startWith } from "rxjs";
 
+// Synchronous value:
 const count = createNode(1);
 count.subscribe(value => console.log("Count:", value));
 count.set(5); // Logs: "Count: 5"
+
+// Asynchronous value:
+const asyncCount = createNode(interval(1000).pipe(startWith(0)));
+console.log("Is async?", asyncCount.isAsync); // true
+asyncCount.subscribe(value => console.log("Tick:", value));
 ```
 
 ### Creating a Computed Node
 
+Computed nodes derive their value from one or more dependency nodes. Their computation function can return either a plain value (synchronous) or an asynchronous source (Promise or Observable). The node will auto-detect the type and mark itself as asynchronous if needed.
+
 ```js
 import { createNode } from "dagify";
 
+// Synchronous computed node:
 const count = createNode(1);
 const double = createNode(
   ([countValue]) => countValue * 2,
@@ -52,6 +90,16 @@ const double = createNode(
 double.subscribe(value => console.log("Double:", value));
 // Changing count updates double automatically:
 count.set(5); // Logs: "Double: 10"
+
+// Asynchronous computed node (returning a Promise):
+const asyncDouble = createNode(([a]) => {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(a * 2), 50);
+  });
+}, [count]);
+
+console.log("asyncDouble is async?", asyncDouble.isAsync); // true
+asyncDouble.subscribe(value => console.log("Async double:", value));
 ```
 
 ### Creating a Reactive Graph
@@ -80,21 +128,18 @@ b.set(4); // Logs: "Sum: 7"
 
 ### Using Observables in Dagify
 
-Dagify allows seamless interoperability with RxJS observables. If an observable is passed as a dependency, it is automatically converted into a reactive node.
-
-If an initial value is needed, the RxJS `startsWith` operator can be used instead of `fromObservable`:
+Dagify allows seamless interoperability with RxJS observables. If an observable is passed as a dependency, it is automatically converted into a reactive node. Computed nodes can also return observables for asynchronous updates.
 
 ```js
 import { createNode } from "dagify";
 import { interval, startWith } from "rxjs";
 
+// Use an observable as the initial value.
 const obs = interval(1000).pipe(startWith(0));
 const node = createNode(obs);
 
 node.subscribe(value => console.log("Tick:", value));
 ```
-
-Using `fromObservable` explicitly is unnecessary unless an initial value is required and `startsWith` is not an option.
 
 ### Batched Updates
 
@@ -181,7 +226,7 @@ node.set(1); // Logs "Once (via once): 1"
 
 ### Custom RxJS Operator: `takeUntilCompleted`
 
-Dagify provides a custom operator to complete a source observable when another observable completes.
+Dagify provides a custom operator to complete a source observable when another observable (such as a node) completes.
 
 ```js
 import { takeUntilCompleted } from "dagify";
@@ -210,4 +255,3 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 ## Acknowledgments
 
 Dagify was inspired by functional reactive programming libraries like RxJS while maintaining a lean and minimal API suitable for modern JavaScript applications.
-
