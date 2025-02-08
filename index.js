@@ -1,8 +1,6 @@
 import { ReactiveNode } from "./lib/ReactiveNode.js";
 import { fromObservable } from "./lib/fromObservable.js";
 import { ReactiveGraph } from "./lib/ReactiveGraph.js";
-export { takeUntilCompleted } from "./lib/takeUntilCompleted.js";
-
 /**
  * Creates a new reactive node.
  *
@@ -69,4 +67,6 @@ const createGraph = (config) => new ReactiveGraph(config);
  */
 const batch = (fn) => ReactiveNode.batch(fn);
 
+export { takeUntilCompleted } from "./lib/takeUntilCompleted.js";
+export * from "./lib/nodes/index.js";
 export { createNode, createGraph, batch, fromObservable };
