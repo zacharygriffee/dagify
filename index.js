@@ -1,4 +1,4 @@
-import { ReactiveNode } from "./lib/ReactiveNode.js";
+import { ReactiveNode, setIdGenerator } from "./lib/ReactiveNode.js";
 import { fromObservable } from "./lib/util/fromObservable.js";
 import { ReactiveGraph } from "./lib/ReactiveGraph.js";
 import { Composite } from "./lib/Composite.js";
@@ -42,4 +42,4 @@ const batch = (fn) => ReactiveNode.batch(fn);
 
 export { takeUntilCompleted } from "./lib/util/takeUntilCompleted.js";
 export * from "./lib/nodes/index.js";
-export { createNode, createGraph, createComposite, batch, fromObservable };
+export { createNode, createGraph, createComposite, batch, fromObservable, setIdGenerator};

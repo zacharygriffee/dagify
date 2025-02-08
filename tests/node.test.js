@@ -428,3 +428,78 @@ test("ReactiveNode should not drop intermediate updates", async (t) => {
 
     t.alike(observedValues, [0, 1, 2, 3, 4, 5], "All updates should be emitted in order");
 });
+
+
+/* === Nested Object/Array Update Tests === */
+
+// Test that updating a node holding a nested object with a deeply equal object
+// does not trigger a new update, but changing a nested value does.
+test("node should trigger update when nested object changes", async (t) => {
+    t.plan(2);
+    const initialObj = { a: { b: 1 } };
+    const node = createNode(initialObj);
+    let callCount = 0;
+
+    node.subscribe((val) => {
+        callCount++;
+        if (callCount === 1) {
+            t.alike(val, initialObj, "Initial value matches");
+        } else if (callCount === 2) {
+            t.alike(val, { a: { b: 2 } }, "Nested object update triggers new emission");
+        }
+    });
+
+    // Update with a deeply equal object: should NOT trigger a new emission.
+    node.set({ a: { b: 1 } });
+    await sleep(50);
+
+    // Update with a new object that differs in its nested value: should trigger an update.
+    node.set({ a: { b: 2 } });
+});
+
+// Test that updating a node holding a nested array with a deeply equal array
+// does not trigger a new update, but changing a nested element does.
+test("node should trigger update when nested array changes", async (t) => {
+    t.plan(2);
+    const initialArr = [1, [2, 3]];
+    const node = createNode(initialArr);
+    let callCount = 0;
+
+    node.subscribe((val) => {
+        callCount++;
+        if (callCount === 1) {
+            t.alike(val, initialArr, "Initial array value matches");
+        } else if (callCount === 2) {
+            t.alike(val, [1, [2, 4]], "Nested array update triggers new emission");
+        }
+    });
+
+    // Update with a deeply equal array: should NOT trigger a new emission.
+    node.set([1, [2, 3]]);
+    await sleep(50);
+
+    // Update with a new array that differs in its nested value: should trigger an update.
+    node.set([1, [2, 4]]);
+});
+
+// Test that a computed node that always returns a new object which is deep equal to
+// the previous result does not trigger a duplicate emission.
+test("computed node should not emit update if computed value is deeply equal", async (t) => {
+    t.plan(1);
+    const a = createNode({ x: 1 });
+    const computed = createNode(([obj]) => {
+        // Always returns a new object, even though its content is identical.
+        return { x: obj.x };
+    }, [a]);
+
+    let callCount = 0;
+    computed.subscribe(() => {
+        callCount++;
+    });
+
+    // Update dependency with an object that is deeply equal to the previous value.
+    a.set({ x: 1 });
+    await sleep(50);
+
+    t.is(callCount, 1, "No update should be emitted if computed result is deeply equal");
+});

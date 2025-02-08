@@ -11,6 +11,9 @@ Dagify is a lightweight functional-reactive programming (FRP) library that allow
 - **Computed Nodes:**  
   Derive new nodes from one or more dependencies that automatically recompute when any dependency changes. Computed functions can return either a plain (synchronous) value or an asynchronous source (Promise or Observable). In the latter case, the node is flagged as asynchronous.
 
+- **Deep Equality Checking for Object/Array Values:**  
+  When a node’s value is an object or array, Dagify uses deep equality checking to ensure that nested changes are detected only when the new value is not deeply equal to the previous value. This means that setting a node with a value that is deeply equal to its current value will not trigger an update.
+
 - **Reactive Graph Support:**  
   Organize nodes into a `ReactiveGraph` for structured dependency management, automatic cycle prevention, and internal Buffer key handling.
 
@@ -49,6 +52,16 @@ Dagify is a lightweight functional-reactive programming (FRP) library that allow
 
 - **Custom RxJS Operator:**  
   The `takeUntilCompleted()` operator allows observables to complete when another observable (such as a node) completes.
+
+## Customizing Node IDs
+
+Dagify assigns a unique identifier to each node by default. If you need to customize the format of these IDs, you can use the `setIdGenerator` function:
+
+```js
+import { setIdGenerator } from "dagify";
+
+setIdGenerator(() => `CustomNode-${Date.now()}`);
+```
 
 ## Installation
 
@@ -106,6 +119,23 @@ const asyncDouble = createNode(([a]) => {
 
 console.log("asyncDouble is async?", asyncDouble.isAsync); // true
 asyncDouble.subscribe(value => console.log("Async double:", value));
+```
+
+### Deep Equality for Nested Values
+
+For nodes that hold objects or arrays, Dagify now performs deep equality checking. This means that if you update a node with a value that is deeply equal to its current value, no new update will be emitted. For example:
+
+```js
+import { createNode } from "dagify";
+
+const objNode = createNode({ a: 1 });
+objNode.subscribe(value => console.log("Object node:", value));
+
+// This update will NOT trigger a new emission because the object is deeply equal.
+objNode.set({ a: 1 });
+
+// This update WILL trigger an emission because the nested value changed.
+objNode.set({ a: 2 });
 ```
 
 ### Converting a Node to an Observable
