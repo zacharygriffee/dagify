@@ -14,6 +14,9 @@ Dagify is a lightweight functional-reactive programming (FRP) library that allow
 - **Reactive Graph Support:**  
   Organize nodes into a `ReactiveGraph` for structured dependency management, automatic cycle prevention, and internal Buffer key handling.
 
+- **Composite Aggregation:**  
+  Create composites from arrays or objects of reactive nodes so that you can subscribe to a single aggregated output that updates whenever any underlying node changes.
+
 - **RxJS Observable Integration:**  
   Observables passed as dependencies are automatically converted into reactive nodes. Computed nodes can also return observables for asynchronous computations. Additionally, each node exposes a `toObservable()` method for seamless RxJS interoperation.
 
@@ -140,6 +143,44 @@ sum.subscribe(value => console.log("Sum:", value));
 
 a.set(3); // Logs: "Sum: 5"
 b.set(4); // Logs: "Sum: 7"
+```
+
+### Creating a Composite
+
+A Composite aggregates multiple reactive nodes into a single source that emits a combined value when any underlying node changes. You can create a composite in either array mode or object mode.
+
+#### Array Mode
+
+```js
+import { createNode, createComposite } from "dagify";
+
+const node1 = createNode(1);
+const node2 = createNode(2);
+const composite = createComposite([node1, node2]);
+
+composite.subscribe(values => {
+  console.log("Composite values (array mode):", values);
+});
+
+node1.set(10); // Logs: Composite values (array mode): [10, 2]
+node2.set(20); // Logs: Composite values (array mode): [10, 20]
+```
+
+#### Object Mode
+
+```js
+import { createNode, createComposite } from "dagify";
+
+const nodeA = createNode(1);
+const nodeB = createNode(2);
+const composite = createComposite({ a: nodeA, b: nodeB });
+
+composite.subscribe(values => {
+  console.log("Composite values (object mode):", values);
+});
+
+nodeA.set(10); // Logs: Composite values (object mode): { a: 10, b: 2 }
+nodeB.set(20); // Logs: Composite values (object mode): { a: 10, b: 20 }
 ```
 
 ### Using Observables in Dagify

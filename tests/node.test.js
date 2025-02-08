@@ -1,7 +1,7 @@
 import {solo, test} from "brittle";
 import {batch, createNode} from "../index.js";
 import {concatMap, delay, interval, of, startWith, take, tap} from "rxjs";
-import {takeUntilCompleted} from "../lib/takeUntilCompleted.js";
+import {takeUntilCompleted} from "../lib/util/takeUntilCompleted.js";
 // Helper: sleep function
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -404,4 +404,27 @@ test("computed node remains sync when returning a plain value", async (t) => {
     await sleep(50);
     t.absent(syncComputed.isAsync, "Computed node should not be marked async when returning a plain value");
     t.is(syncComputed.value, 11, "Computed node computes synchronously as expected");
+});
+
+test("ReactiveNode should not drop intermediate updates", async (t) => {
+    t.plan(1);
+
+    const node = createNode(0);
+    const observedValues = [];
+
+    node.subscribe((val) => {
+        observedValues.push(val);
+    });
+
+    // Apply rapid updates
+    node.set(1);
+    node.set(2);
+    node.set(3);
+    node.set(4);
+    node.set(5);
+
+    // Allow time for updates to process
+    await sleep();
+
+    t.alike(observedValues, [0, 1, 2, 3, 4, 5], "All updates should be emitted in order");
 });
