@@ -1,6 +1,7 @@
-import {ReactiveNode} from "./lib/ReactiveNode.js";
-import {fromObservable} from "./lib/fromObservable.js";
-import {ReactiveGraph} from "./lib/ReactiveGraph.js";
+import { ReactiveNode } from "./lib/ReactiveNode.js";
+import { fromObservable } from "./lib/fromObservable.js";
+import { ReactiveGraph } from "./lib/ReactiveGraph.js";
+export { takeUntilCompleted } from "./lib/takeUntilCompleted.js";
 
 /**
  * Creates a new reactive node.
@@ -30,7 +31,22 @@ import {ReactiveGraph} from "./lib/ReactiveGraph.js";
  * count.set(5); // Logs: "Double: 10"
  */
 const createNode = (fnOrValue, dependencies = []) => new ReactiveNode(fnOrValue, dependencies);
+
+/**
+ * Creates a new reactive graph.
+ *
+ * This function initializes a ReactiveGraph instance with an optional configuration.
+ *
+ * @param {Object} [config={}] - Configuration object for the reactive graph.
+ * @param {string} [config.keyEncoding="binary"] - Encoding type for keys.
+ * @returns {ReactiveGraph} A new reactive graph instance.
+ *
+ * @example
+ * // Creating a new reactive graph
+ * const graph = createGraph({ keyEncoding: "utf-8" });
+ */
 const createGraph = (config) => new ReactiveGraph(config);
+
 /**
  * Executes multiple updates in batch mode to optimize performance.
  *
@@ -53,4 +69,4 @@ const createGraph = (config) => new ReactiveGraph(config);
  */
 const batch = (fn) => ReactiveNode.batch(fn);
 
-export {createNode, createGraph, batch, fromObservable};
+export { createNode, createGraph, batch, fromObservable };

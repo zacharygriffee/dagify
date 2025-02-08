@@ -7,7 +7,7 @@ Dagify is a lightweight, functional-reactive programming (FRP) library that allo
 - **Stateful Nodes:** Create nodes that hold a value and can be updated manually.
 - **Computed Nodes:** Derive new nodes from one or more dependencies that automatically recompute when any dependency changes.
 - **Reactive Graph Support:** Organize nodes into a `ReactiveGraph` for structured dependency management.
-- **RxJS Observable Integration:** Convert RxJS observables into Dagify nodes using `fromObservable()`.
+- **RxJS Observable Integration:** Observables passed as dependencies are automatically converted into reactive nodes.
 - **Batched Updates:** Group multiple updates together so that subscribers receive only the final value.
 - **Skip Subscriptions:** Option to subscribe without receiving an initial value.
 - **Error Handling:** Computed nodes propagate errors via an `error` callback.
@@ -78,19 +78,23 @@ a.set(3); // Logs: "Sum: 5"
 b.set(4); // Logs: "Sum: 7"
 ```
 
-### Using `fromObservable`
+### Using Observables in Dagify
 
-Dagify allows wrapping RxJS observables into reactive nodes, enabling seamless interoperability.
+Dagify allows seamless interoperability with RxJS observables. If an observable is passed as a dependency, it is automatically converted into a reactive node.
+
+If an initial value is needed, the RxJS `startsWith` operator can be used instead of `fromObservable`:
 
 ```js
-import { fromObservable, createNode } from "dagify";
-import { interval } from "rxjs";
+import { createNode } from "dagify";
+import { interval, startWith } from "rxjs";
 
-const obs = interval(1000);
-const node = fromObservable(obs, 0);
+const obs = interval(1000).pipe(startWith(0));
+const node = createNode(obs);
 
 node.subscribe(value => console.log("Tick:", value));
 ```
+
+Using `fromObservable` explicitly is unnecessary unless an initial value is required and `startsWith` is not an option.
 
 ### Batched Updates
 
@@ -195,47 +199,6 @@ setTimeout(() => stopNotifier.complete(), 5000);
 // After 5 seconds, the observable stops.
 ```
 
-## API
-
-### `createNode(fnOrValue, dependencies)`
-
-- **Parameters:**
-  - `fnOrValue` (function | any): Either a function for computed nodes or an initial value.
-  - `dependencies` (Array, optional): An array of nodes (or RxJS observables) on which the computed node depends.
-- **Returns:** A new reactive node.
-
-### `createGraph(config)`
-
-- **Parameters:**
-  - `config` (Object, optional): Graph configuration options.
-- **Returns:** A new `ReactiveGraph` instance.
-
-### `batch(fn)`
-
-- **Parameters:**
-  - `fn` (function): A function containing multiple updates.
-- **Description:** Executes multiple updates in batch mode so that subscribers only see the final computed value.
-
-### Subscription Methods
-
-- **subscribe(observer):**  
-  Subscribes to changes. The observer can be a function or an object with `next`, `error`, and `complete` callbacks. The initial value is emitted asynchronously.
-
-- **skip.subscribe(observer):**  
-  Works like `subscribe` but skips the immediate initial emission.
-
-- **subscribeOnce(observer):**  
-  Subscribes to the node and automatically unsubscribes after the first emission.
-
-- **once.subscribe(observer):**  
-  An alternative interface for a one-time subscription that automatically unsubscribes after the first update.
-
-- **error(err):**  
-  Manually triggers error notifications for the node.
-
-- **complete():**  
-  Marks the node as complete, triggers completion notifications, and stops further emissions.
-
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
@@ -247,3 +210,4 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 ## Acknowledgments
 
 Dagify was inspired by functional reactive programming libraries like RxJS while maintaining a lean and minimal API suitable for modern JavaScript applications.
+
