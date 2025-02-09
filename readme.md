@@ -92,6 +92,27 @@ console.log("Is async?", asyncCount.isAsync); // true
 asyncCount.subscribe(value => console.log("Tick:", value));
 ```
 
+### Updating Nodes
+
+For stateful nodes (non-computed), Dagify provides an `update()` function similar to Svelte stores. This method accepts an update function that takes the current value and returns a new value. The node is then updated with this new value.
+
+```js
+import { createNode } from "dagify";
+
+const count = createNode(1);
+
+// Using update() to increment the value.
+count.update(current => current + 1);
+console.log(count.value); // Should now be 2
+
+// For computed nodes, calling update() simply recomputes their value:
+const base = createNode(1);
+const double = createNode(([x]) => x * 2, [base]);
+
+// This will recalculate the computed node's value.
+double.update();
+```
+
 ### Creating a Computed Node
 
 Computed nodes derive their value from one or more dependency nodes. Their computation function can return either a plain value (synchronous) or an asynchronous source (Promise or Observable). The node will auto-detect the type and mark itself as asynchronous if needed.
@@ -347,6 +368,25 @@ source.subscribe({
 
 setTimeout(() => stopNotifier.complete(), 5000);
 // After 5 seconds, the observable stops.
+```
+
+### Updating Nodes
+
+For stateful (non-computed) nodes, Dagify now provides an `update()` method similar to Svelte stores. This method takes a function that receives the current value and returns a new value. The node is then updated with this new value.
+
+```js
+import { createNode } from "dagify";
+
+const count = createNode(1);
+
+// Increment the count using update():
+count.update(current => current + 1);
+console.log(count.value); // Should now be 2
+
+// For computed nodes, update() simply triggers recomputation:
+const base = createNode(1);
+const double = createNode(([x]) => x * 2, [base]);
+double.update(); // Recomputes the value of 'double'
 ```
 
 ## License

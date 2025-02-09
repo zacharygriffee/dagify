@@ -242,3 +242,41 @@ test("Composite complete should unsubscribe from all nodes and prevent further e
 
     t.is(emissionCount, 2, "No emissions should occur after complete is called");
 });
+
+test("Test that a Composite can utilize computed nodes and reflect dynamic dependency updates", async (t) => {
+    // Create a base node with initial value 1.
+    const node = createNode(1);
+
+    // Create a computed node that adds 1 to its dependency.
+    const computed = createNode(([x]) => x + 1, [node]);
+
+    // Create a composite containing the computed node.
+    const comp = new Composite([computed]);
+
+    // Initially, the computed node should be 1 + 1 = 2.
+    t.alike(comp.value, [2], "Initial composite value should be [2]");
+
+    // Update the dependency node from 1 to 3. The computed node should update to 3 + 1 = 4.
+    node.set(3);
+    await delay(50);
+    t.alike(comp.value, [4], "Composite should reflect updated computed node value [4] after dependency change");
+
+    // Listen for updates on the computed node.
+    let updateCount = 0;
+    const unsubscribe = computed.skip.subscribe(() => {
+        updateCount++;
+    });
+
+    // Set the dependency to the same value (3), which should not change the computed value (still 4).
+    node.set(3);
+    await delay(50);
+    t.is(updateCount, 0, "No duplicate update should occur if dependency set to a value that doesn't change computed result");
+
+    // Update the dependency to 5. The computed node should update to 5 + 1 = 6.
+    node.set(5);
+    await delay(50);
+    t.alike(comp.value, [6], "Composite should reflect computed node value [6] after updating dependency to 5");
+
+    // Clean up
+    unsubscribe.unsubscribe();
+});
