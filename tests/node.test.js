@@ -503,3 +503,4 @@ test("computed node should not emit update if computed value is deeply equal", a
 
     t.is(callCount, 1, "No update should be emitted if computed result is deeply equal");
 });
+

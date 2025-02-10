@@ -1,67 +1,27 @@
 # Dagify
 
-Dagify is a lightweight functional-reactive programming (FRP) library that allows you to create reactive nodes—both stateful and computed—that automatically propagate changes through a directed acyclic graph (DAG) of dependencies. It provides RxJS-compatible APIs along with features like batched updates, error handling, completion, flexible subscription options, and auto-detection of asynchronous sources.
+Dagify is a lightweight functional-reactive programming (FRP) library for building reactive dependency graphs. It lets you create reactive nodes—both stateful and computed—that automatically propagate updates through a directed acyclic graph (DAG) of dependencies. Dagify is designed for modern JavaScript applications and works seamlessly with RxJS. In front-end projects, its nodes can also double as Svelte stores.
 
-## Features
+> **Note:**  
+> - Use `createNode()` to create a **ReactiveNode**.  
+> - Use `createGraph()` to create a **ReactiveGraph** for structured node management.  
+> - Use `createComposite()` to combine multiple nodes into a single reactive composite.  
+> - Additional helper functions like `batch()`, `fromObservable()`, `setIdGenerator()`, and `takeUntilCompleted()` enhance your workflow.
 
-- **Stateful Nodes:**  
-  Create nodes that hold a value and can be updated manually.  
-  Dagify automatically detects if a node’s initial value is asynchronous (e.g. an RxJS Observable or Promise) and marks it as such.
+## Table of Contents
 
-- **Computed Nodes:**  
-  Derive new nodes from one or more dependencies that automatically recompute when any dependency changes. Computed functions can return either a plain (synchronous) value or an asynchronous source (Promise or Observable). In the latter case, the node is flagged as asynchronous.
-
-- **Deep Equality Checking for Object/Array Values:**  
-  When a node’s value is an object or array, Dagify uses deep equality checking to ensure that nested changes are detected only when the new value is not deeply equal to the previous value. This means that setting a node with a value that is deeply equal to its current value will not trigger an update.
-
-- **Reactive Graph Support:**  
-  Organize nodes into a `ReactiveGraph` for structured dependency management, automatic cycle prevention, and internal Buffer key handling.
-
-- **Composite Aggregation:**  
-  Create composites from arrays or objects of reactive nodes so that you can subscribe to a single aggregated output that updates whenever any underlying node changes.
-
-- **RxJS Observable Integration:**  
-  Observables passed as dependencies are automatically converted into reactive nodes. Computed nodes can also return observables for asynchronous computations. Additionally, each node exposes a `toObservable()` method for seamless RxJS interoperation.
-
-- **Batched Updates:**  
-  Group multiple updates together so that subscribers receive only the final value.
-
-- **Skip Subscriptions:**  
-  Subscribe without receiving an initial value.
-
-- **Error Handling:**  
-  Computed nodes propagate errors via an `error` callback.
-
-- **Completion:**  
-  Nodes can be marked as complete so that no further updates are emitted.
-
-- **Once Subscriptions:**  
-  Subscribe once and automatically unsubscribe after the first emission.
-
-- **Automatic Dependency Cleanup:**  
-  Computed nodes automatically clean up their dependency subscriptions when there are no active subscribers and reinitialize them when needed.
-
-- **Enhanced Dependency Management:**  
-  `addDependency()` and `removeDependency()` methods now accept either a single ReactiveNode or an array of ReactiveNodes, simplifying bulk management.
-
-- **Cycle Prevention:**  
-  The `ReactiveGraph` class ensures that adding edges between nodes does not create cycles.
-
-- **RxJS Compatibility:**  
-  Built on a Subject-like API for seamless interoperability with RxJS.
-
-- **Custom RxJS Operator:**  
-  The `takeUntilCompleted()` operator allows observables to complete when another observable (such as a node) completes.
-
-## Customizing Node IDs
-
-Dagify assigns a unique identifier to each node by default. If you need to customize the format of these IDs, you can use the `setIdGenerator` function:
-
-```js
-import { setIdGenerator } from "dagify";
-
-setIdGenerator(() => `CustomNode-${Date.now()}`);
-```
+- [Installation](#installation)
+- [API Reference](#api-reference)
+  - [ReactiveNode API](#reactivenode-api)
+  - [ReactiveGraph API](#reactivegraph-api)
+  - [Composite Nodes](#composite-nodes)
+  - [Helper Functions](#helper-functions)
+- [Usage Examples](#usage-examples)
+  - [Creating Stateful and Computed Nodes](#creating-stateful-and-computed-nodes)
+  - [Managing a Reactive Graph](#managing-a-reactive-graph)
+  - [Advanced Node Features](#advanced-node-features)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation
 
@@ -71,136 +31,155 @@ Install Dagify via npm:
 npm install dagify
 ```
 
-## Usage
+## API Reference
 
-### Creating a Stateful Node
+### ReactiveNode API
 
-Dagify nodes automatically detect whether the initial value is synchronous or asynchronous. For example, if you pass an observable, the node marks itself as asynchronous.
+Create nodes using `createNode()`. A ReactiveNode supports both stateful (manual updates) and computed (derived) behavior.
 
-```js
-import { createNode } from "dagify";
-import { interval, startWith } from "rxjs";
+**Key Methods:**
 
-// Synchronous value:
-const count = createNode(1);
-count.subscribe(value => console.log("Count:", value));
-count.set(5); // Logs: "Count: 5"
+- **`set(value)`**  
+  Sets a new value (for stateful nodes).
 
-// Asynchronous value:
-const asyncCount = createNode(interval(1000).pipe(startWith(0)));
-console.log("Is async?", asyncCount.isAsync); // true
-asyncCount.subscribe(value => console.log("Tick:", value));
-```
+- **`update(fn)`**  
+  Updates the node’s value by applying a function to the current value. For computed nodes, this triggers recomputation.
 
-### Updating Nodes
+- **`subscribe(callback)`**  
+  Subscribes to value changes.
 
-For stateful nodes (non-computed), Dagify provides an `update()` function similar to Svelte stores. This method accepts an update function that takes the current value and returns a new value. The node is then updated with this new value.
+- **`subscribeOnce(callback)`**  
+  Subscribes to the next emission only; automatically unsubscribes afterward.
 
-```js
-import { createNode } from "dagify";
+- **`skip`**  
+  A subscription interface that skips the initial emission.
 
-const count = createNode(1);
+- **`once`**  
+  A one-time subscription interface.
 
-// Using update() to increment the value.
-count.update(current => current + 1);
-console.log(count.value); // Should now be 2
+- **`toObservable()`**  
+  Converts the node to an RxJS Observable.
 
-// For computed nodes, calling update() simply recomputes their value:
-const base = createNode(1);
-const double = createNode(([x]) => x * 2, [base]);
+- **`complete()`**  
+  Marks the node as complete so that no further updates occur.
 
-// This will recalculate the computed node's value.
-double.update();
-```
+- **`addDependency(node | array)`** and **`removeDependency(node | array)`**  
+  Manage dependencies for computed nodes in bulk.
 
-### Creating a Computed Node
+> **Svelte Compatibility:**  
+> Dagify nodes follow a similar API to Svelte stores, so they can be used directly in Svelte applications for reactive state management.
 
-Computed nodes derive their value from one or more dependency nodes. Their computation function can return either a plain value (synchronous) or an asynchronous source (Promise or Observable). The node will auto-detect the type and mark itself as asynchronous if needed.
+Example:
 
 ```js
 import { createNode } from "dagify";
 
-// Synchronous computed node:
-const count = createNode(1);
-const double = createNode(
-  ([countValue]) => countValue * 2,
-  [count]
-);
-
-double.subscribe(value => console.log("Double:", value));
-// Changing count updates double automatically:
-count.set(5); // Logs: "Double: 10"
-
-// Asynchronous computed node (returning a Promise):
-const asyncDouble = createNode(([a]) => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(a * 2), 50);
-  });
-}, [count]);
-
-console.log("asyncDouble is async?", asyncDouble.isAsync); // true
-asyncDouble.subscribe(value => console.log("Async double:", value));
+const stateful = createNode(1);
+stateful.subscribe(val => console.log("Stateful:", val));
+stateful.set(2);
+stateful.update(current => current + 1);
 ```
 
-### Deep Equality for Nested Values
+### ReactiveGraph API
 
-For nodes that hold objects or arrays, Dagify now performs deep equality checking. This means that if you update a node with a value that is deeply equal to its current value, no new update will be emitted. For example:
+Create a graph using `createGraph()`. The ReactiveGraph organizes nodes, prevents cycles, and provides extensive introspection.
 
-```js
-import { createNode } from "dagify";
+**Key Methods:**
 
-const objNode = createNode({ a: 1 });
-objNode.subscribe(value => console.log("Object node:", value));
+- **`addNode(node)` or `addNode(id, node)`**  
+  Adds a node to the graph. If an id is provided, that key is used; otherwise, the node’s generated id is used.
 
-// This update will NOT trigger a new emission because the object is deeply equal.
-objNode.set({ a: 1 });
+- **`removeNode(nodeRef)`**  
+  Removes a node and all its connections.
 
-// This update WILL trigger an emission because the nested value changed.
-objNode.set({ a: 2 });
-```
+- **`connect(srcRef, tgtRef)`**  
+  Adds an edge from the source node to the target node (with automatic cycle prevention).
 
-### Converting a Node to an Observable
+- **`disconnect(srcRef, tgtRef)`**  
+  Removes the edge from source to target.
 
-Dagify nodes expose a `toObservable()` method, making it easy to integrate with RxJS operators (for instance, to debounce or throttle updates).
+- **`topologicalSort()`**  
+  Returns a topologically sorted array of node keys.
 
-```js
-import { createNode } from "dagify";
-import { debounceTime } from "rxjs/operators";
+- **`update()`**  
+  Recomputes all computed nodes in topological order.
 
-const node = createNode(10);
-const debounced$ = node.toObservable().pipe(debounceTime(200));
-debounced$.subscribe(value => console.log("Debounced:", value));
-```
+- **`updateAsync()`**  
+  Asynchronously updates all computed nodes.
 
-### Creating a Reactive Graph
+- **`getNode(ref | array)`**  
+  Retrieves a node (or an array of nodes) by reference.
 
-Dagify supports managing nodes in a structured manner using `ReactiveGraph`. This allows you to track node dependencies, prevent cycles, and handle Buffer key encoding internally.
+- **`getImmediatePredecessors(ref)`**  
+  Gets the direct dependency nodes of a given node.
+
+- **`getPredecessors(ref, { transitive: true })`**  
+  Gets all (transitive) dependency nodes.
+
+- **`getImmediateSuccessors(ref)`**  
+  Gets the nodes that depend directly on a given node.
+
+- **`getSuccessors(ref, { transitive: true })`**  
+  Gets all (transitive) dependent nodes.
+
+- **`getSources()`**  
+  Retrieves all nodes with no incoming edges.
+
+- **`getSinks()`**  
+  Retrieves all nodes with no outgoing edges.
+
+- **`toString()`**  
+  Returns a human-readable string representation of the graph.
+
+- **`findPath(srcRef, tgtRef)`**  
+  Finds a dependency path (an array of Buffer keys) from the source to the target node.
+
+- **`getInDegree(ref)`** / **`getOutDegree(ref)`**  
+  Returns the number of incoming or outgoing edges for a node.
+
+- **`hasNode(ref)`**  
+  Checks if the node exists in the graph.
+
+- **`hasEdge(srcRef, tgtRef)`**  
+  Checks if an edge exists from the source to the target node.
+
+- **`clear()`**  
+  Removes all nodes and edges from the graph.
+
+- **`getConnectedComponent(ref)`**  
+  Retrieves all nodes in the same connected component as the given node.
+
+Example:
 
 ```js
 import { createGraph, createNode } from "dagify";
 
 const graph = createGraph();
+
 const a = createNode(1);
 const b = createNode(2);
-const sum = createNode(([x, y]) => x + y, [a, b]);
+const sum = createNode(([x, y]) => x + y);
 
-graph.addNode("a", a);
-graph.addNode("b", b);
-graph.addNode("sum", sum);
-graph.connect("a", "sum");
-graph.connect("b", "sum");
+graph.addNode(a);
+graph.addNode(b);
+graph.addNode(sum);
 
-sum.subscribe(value => console.log("Sum:", value));
+graph.connect(a, sum);
+graph.connect(b, sum);
 
-a.set(3); // Logs: "Sum: 5"
-b.set(4); // Logs: "Sum: 7"
+sum.subscribe(val => console.log("Sum:", val)); // Initially logs "Sum: 3"
+a.set(3); // Logs "Sum: 5"
+b.set(4); // Logs "Sum: 7"
 ```
 
-### Creating a Composite
+### Composite Nodes
 
-A Composite aggregates multiple reactive nodes into a single source that emits a combined value when any underlying node changes. You can create a composite in either array mode or object mode.
+Use `createComposite()` to aggregate multiple reactive nodes into a single composite node that emits a combined value. Composites can be created in two modes:
 
-#### Array Mode
+- **Array Mode:** Combine an array of nodes.
+- **Object Mode:** Combine an object of nodes.
+
+Example (Array Mode):
 
 ```js
 import { createNode, createComposite } from "dagify";
@@ -210,14 +189,14 @@ const node2 = createNode(2);
 const composite = createComposite([node1, node2]);
 
 composite.subscribe(values => {
-  console.log("Composite values (array mode):", values);
+  console.log("Composite (array mode):", values);
 });
 
-node1.set(10); // Logs: Composite values (array mode): [10, 2]
-node2.set(20); // Logs: Composite values (array mode): [10, 20]
+node1.set(10); // Logs: [10, 2]
+node2.set(20); // Logs: [10, 20]
 ```
 
-#### Object Mode
+Example (Object Mode):
 
 ```js
 import { createNode, createComposite } from "dagify";
@@ -227,176 +206,228 @@ const nodeB = createNode(2);
 const composite = createComposite({ a: nodeA, b: nodeB });
 
 composite.subscribe(values => {
-  console.log("Composite values (object mode):", values);
+  console.log("Composite (object mode):", values);
 });
 
-nodeA.set(10); // Logs: Composite values (object mode): { a: 10, b: 2 }
-nodeB.set(20); // Logs: Composite values (object mode): { a: 10, b: 20 }
+nodeA.set(10); // Logs: { a: 10, b: 2 }
+nodeB.set(20); // Logs: { a: 10, b: 20 }
 ```
 
-### Using Observables in Dagify
+### Helper Functions
 
-Dagify allows seamless interoperability with RxJS observables. If an observable is passed as a dependency, it is automatically converted into a reactive node. Computed nodes can also return observables for asynchronous updates.
+Dagify exports several helper functions that enhance your development experience:
 
-```js
-import { createNode } from "dagify";
-import { interval, startWith } from "rxjs";
+- **`setIdGenerator(fn)`**  
+  Customize the format of node identifiers. For example:
 
-// Use an observable as the initial value.
-const obs = interval(1000).pipe(startWith(0));
-const node = createNode(obs);
+  ```js
+  import { setIdGenerator } from "dagify";
 
-node.subscribe(value => console.log("Tick:", value));
-```
+  setIdGenerator(() => `CustomNode-${Date.now()}`);
+  ```
 
-### Batched Updates
+- **`fromObservable(observable)`**  
+  Converts an RxJS Observable into a reactive node. This is useful when you want to integrate external streams into your reactive graph.
 
-You can batch multiple updates together so that subscribers receive only the final value:
+  ```js
+  import { fromObservable } from "dagify";
+  import { interval } from "rxjs";
 
-```js
-import { createNode, batch } from "dagify";
+  const obsNode = fromObservable(interval(1000));
+  obsNode.subscribe(val => console.log("Observable node:", val));
+  ```
 
-const value = createNode(0);
-batch(() => {
-  value.set(1);
-  value.set(2);
-  value.set(3);
-});
-// Subscribers only see the final value, 3.
-```
+- **`batch(fn)`**  
+  Executes multiple updates in batch mode, so subscribers receive only the final value.
 
-### Skip Initial Emission
+  ```js
+  import { createNode, batch } from "dagify";
 
-Use the `skip` interface to subscribe without receiving the initial emission:
+  const value = createNode(0);
+  value.subscribe(val => console.log("Batched value:", val));
 
-```js
-import { createNode } from "dagify";
+  batch(() => {
+    value.set(1);
+    value.set(2);
+    value.set(3);
+  });
+  // Subscribers only see the final value: 3.
+  ```
 
-const node = createNode(10);
-node.skip.subscribe(value => {
-  console.log("Updated value:", value);
-});
-node.set(20); // Logs: "Updated value: 20"
-// No initial emission of 10 is delivered.
-```
+- **`takeUntilCompleted()`**  
+  A custom RxJS operator that completes a stream when a notifier (e.g., a node) completes.
 
-### Error Handling and Completion
+  ```js
+  import { takeUntilCompleted } from "dagify";
+  import { interval, Subject } from "rxjs";
 
-Computed nodes propagate errors if their computation fails, and you can complete a node to signal that no further updates will be sent.
+  const stopNotifier = new Subject();
+  const source = interval(1000).pipe(takeUntilCompleted(stopNotifier));
 
-```js
-import { createNode } from "dagify";
+  source.subscribe({
+    next: val => console.log("Tick:", val),
+    complete: () => console.log("Source completed")
+  });
 
-// Computed node that throws an error:
-const faulty = createNode(([a]) => {
-  throw new Error("Computation failed");
-}, [createNode(5)]);
+  setTimeout(() => stopNotifier.complete(), 5000);
+  ```
 
-faulty.subscribe({
-  next: () => console.log("Should not receive a value"),
-  error: (err) => console.error("Error:", err.message)
-});
+## Usage Examples
 
-// Marking a node as complete:
-const node = createNode(100);
-node.subscribe({
-  next: (value) => console.log("Value:", value),
-  complete: () => console.log("Node completed")
-});
-node.complete();
-node.set(200); // No further updates emitted.
-```
+### Creating Stateful and Computed Nodes
 
-### Once Subscriptions
-
-Dagify supports one-time subscriptions via two interfaces: `subscribeOnce` and the `once` property. Both will automatically unsubscribe after the first emission.
-
-Using `subscribeOnce`:
-
-```js
-import { createNode } from "dagify";
-
-const node = createNode(0);
-node.subscribeOnce(value => console.log("Once:", value));
-node.set(1); // Logs "Once: 1"
-// Subsequent updates will not trigger the once subscriber.
-```
-
-Or using the `once` subscription interface:
-
-```js
-import { createNode } from "dagify";
-
-const node = createNode(0);
-node.once.subscribe(value => console.log("Once (via once):", value));
-node.set(1); // Logs "Once (via once): 1"
-```
-
-### Enhanced Dependency Management
-
-Dagify now supports adding or removing dependencies in bulk by passing an array to `addDependency` or `removeDependency`. This simplifies managing multiple dependencies at once.
-
-```js
-import { createNode } from "dagify";
-
-const dep1 = createNode(1);
-const dep2 = createNode(2);
-const computed = createNode(([a, b]) => a + b, [dep1]);
-
-// Add multiple dependencies:
-computed.addDependency([dep2]);
-
-// Remove multiple dependencies:
-computed.removeDependency([dep1, dep2]);
-```
-
-### Custom RxJS Operator: `takeUntilCompleted`
-
-Dagify provides a custom operator to complete a source observable when another observable (such as a node) completes.
-
-```js
-import { takeUntilCompleted } from "dagify";
-import { interval, Subject } from "rxjs";
-
-const stopNotifier = new Subject();
-const source = interval(1000).pipe(takeUntilCompleted(stopNotifier));
-
-source.subscribe({
-  next: (value) => console.log("Tick:", value),
-  complete: () => console.log("Stopped"),
-});
-
-setTimeout(() => stopNotifier.complete(), 5000);
-// After 5 seconds, the observable stops.
-```
-
-### Updating Nodes
-
-For stateful (non-computed) nodes, Dagify now provides an `update()` method similar to Svelte stores. This method takes a function that receives the current value and returns a new value. The node is then updated with this new value.
+#### Stateful Node
 
 ```js
 import { createNode } from "dagify";
 
 const count = createNode(1);
-
-// Increment the count using update():
-count.update(current => current + 1);
-console.log(count.value); // Should now be 2
-
-// For computed nodes, update() simply triggers recomputation:
-const base = createNode(1);
-const double = createNode(([x]) => x * 2, [base]);
-double.update(); // Recomputes the value of 'double'
+count.subscribe(val => console.log("Count:", val));
+count.set(5); // Updates count to 5.
 ```
+
+#### Computed Node
+
+```js
+import { createNode } from "dagify";
+
+const count = createNode(1);
+const double = createNode(([val]) => val * 2, [count]);
+
+double.subscribe(val => console.log("Double:", val));
+count.set(3); // Automatically logs "Double: 6"
+```
+
+#### Asynchronous Computed Node
+
+```js
+import { createNode } from "dagify";
+
+const count = createNode(1);
+const asyncDouble = createNode(([val]) => {
+  return new Promise(resolve => setTimeout(() => resolve(val * 2), 50));
+}, [count]);
+
+asyncDouble.subscribe(val => console.log("Async double:", val));
+count.set(4); // Eventually logs "Async double: 8"
+```
+
+### Managing a Reactive Graph
+
+```js
+import { createGraph, createNode } from "dagify";
+
+const graph = createGraph();
+
+const a = createNode(1);
+const b = createNode(2);
+const sum = createNode(([x, y]) => x + y);
+
+graph.addNode(a);
+graph.addNode(b);
+graph.addNode(sum);
+
+graph.connect(a, sum);
+graph.connect(b, sum);
+
+sum.subscribe(val => console.log("Sum:", val));
+
+a.set(3); // Logs "Sum: 5"
+b.set(4); // Logs "Sum: 7"
+
+// Print the graph:
+console.log("Graph:\n" + graph.toString());
+
+// Find a dependency path from a to sum:
+const path = graph.findPath(a, sum);
+console.log("Path from a to sum:", path.map(buf => graph.decodeKey(buf)));
+
+// Get immediate predecessors and the connected component:
+console.log("Immediate predecessors of sum:", graph.getImmediatePredecessors(sum).map(n => n.id));
+console.log("Connected component for a:", graph.getConnectedComponent(a).map(n => n.id));
+```
+
+### Advanced Node Features
+
+#### Batched Updates
+
+```js
+import { createNode, batch } from "dagify";
+
+const value = createNode(0);
+value.subscribe(val => console.log("Batched value:", val));
+
+batch(() => {
+  value.set(1);
+  value.set(2);
+  value.set(3);
+});
+// Subscribers receive only the final value: 3.
+```
+
+#### Skip Initial Emission
+
+```js
+import { createNode } from "dagify";
+
+const node = createNode(10);
+node.skip.subscribe(val => console.log("Skip subscription:", val));
+node.set(20); // Logs: "Skip subscription: 20" (no initial emission of 10)
+```
+
+#### Once Subscriptions
+
+```js
+import { createNode } from "dagify";
+
+const node = createNode(0);
+node.subscribeOnce(val => console.log("subscribeOnce:", val));
+node.once.subscribe(val => console.log("once subscription:", val));
+node.set(1); // Each logs only once.
+```
+
+#### Asynchronous Graph Update
+
+```js
+import { createGraph, createNode } from "dagify";
+
+const graph = createGraph();
+
+const a = createNode(3);
+const b = createNode(([val]) => val * 2);
+// Override update() to simulate an async computation.
+b.update = async function() {
+  this.value = this.fn([a.value]);
+  await new Promise(resolve => setTimeout(resolve, 10));
+};
+
+graph.addNode(a);
+graph.addNode(b);
+graph.connect(a, b);
+
+await graph.updateAsync();
+console.log("Async update - b.value:", b.value); // Should log 6.
+```
+
+#### Composite Aggregation
+
+```js
+import { createNode, createComposite } from "dagify";
+
+const node1 = createNode(1);
+const node2 = createNode(2);
+const composite = createComposite([node1, node2]);
+
+composite.subscribe(values => console.log("Composite (array mode):", values));
+
+node1.set(10); // Logs: [10, 2]
+node2.set(20); // Logs: [10, 20]
+```
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request for improvements, bug fixes, or new features.
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request for any improvements, bug fixes, or new features.
-
-## Acknowledgments
-
-Dagify was inspired by functional reactive programming libraries like RxJS while maintaining a lean and minimal API suitable for modern JavaScript applications.
