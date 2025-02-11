@@ -504,3 +504,13 @@ test("computed node should not emit update if computed value is deeply equal", a
     t.is(callCount, 1, "No update should be emitted if computed result is deeply equal");
 });
 
+test("Node has a node", async t => {
+    const a = createNode(1);
+    const b = createNode(a);
+    t.is(b.value, a);
+    const c = createNode(([x]) => {
+        a.set(10); return x;
+    }, a);
+    t.is(a.value, 10);
+    t.is(c.value, 1);
+});

@@ -84,10 +84,52 @@ stateful.update(current => current + 1);
 
 Create a graph using `createGraph()`. The ReactiveGraph organizes nodes, prevents cycles, and provides extensive introspection.
 
-**Key Methods:**
+**Creating Nodes:**
+
+Nodes are created with the `createNode()` function. For example:
+
+```js
+const node1 = createNode(5); // A stateful node with an initial value of 5.
+const node2 = createNode(([n]) => n + 4, [node1]); // A computed node that depends on node1 (node2.value becomes 9).
+```
+
+**Adding Nodes to the Graph:**
+
+Nodes are added to the graph using either the single or batch methods:
 
 - **`addNode(node)` or `addNode(id, node)`**  
-  Adds a node to the graph. If an id is provided, that key is used; otherwise, the node’s generated id is used.
+  Adds a single node to the graph.
+  - When called with one argument, the node’s internally generated identifier (typically derived from a property like `id`) is used.
+  - When called with two arguments, the first argument is treated as a custom identifier, and the provided node is associated with that key.
+
+  **Examples:**
+  ```js
+  // Using the node’s generated id:
+  graph.addNode(node1);
+  
+  // Using a custom id:
+  graph.addNode("five", node1);
+  ```
+
+- **`addNodes(nodes)`**  
+  Adds multiple nodes to the graph in one call. Each element in the provided array can be one of two formats:
+
+  1. **Node Object:**  
+     Simply supply the node object. The node’s generated id is used.
+     ```js
+     graph.addNodes([node1, node2]);
+     ```
+
+  2. **Tuple Format:**  
+     Supply a two-element array where the first element is a custom identifier and the second element is the node object.
+     ```js
+     graph.addNodes([
+       ["five", node1],
+       ["nine", node2]
+     ]);
+     ```
+
+**Other Key Methods:**
 
 - **`removeNode(nodeRef)`**  
   Removes a node and all its connections.
@@ -96,7 +138,7 @@ Create a graph using `createGraph()`. The ReactiveGraph organizes nodes, prevent
   Adds an edge from the source node to the target node (with automatic cycle prevention).
 
 - **`disconnect(srcRef, tgtRef)`**  
-  Removes the edge from source to target.
+  Removes the edge from the source to the target node.
 
 - **`topologicalSort()`**  
   Returns a topologically sorted array of node keys.
@@ -132,7 +174,7 @@ Create a graph using `createGraph()`. The ReactiveGraph organizes nodes, prevent
   Returns a human-readable string representation of the graph.
 
 - **`findPath(srcRef, tgtRef)`**  
-  Finds a dependency path (an array of Buffer keys) from the source to the target node.
+  Finds a dependency path (an array of keys) from the source to the target node.
 
 - **`getInDegree(ref)`** / **`getOutDegree(ref)`**  
   Returns the number of incoming or outgoing edges for a node.
