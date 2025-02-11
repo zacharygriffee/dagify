@@ -488,3 +488,200 @@ test("getConnectedComponent returns correct connected components", t => {
     t.ok(comp2.some(n => n.id === e.id), "Connected component for 'd' includes 'e'");
     t.absent(comp2.some(n => n.id === a.id), "Connected component for 'd' does not include 'a'");
 });
+
+// ─────────────────────────────────────────────
+// Test for addNodes using both direct and tuple formats
+// ─────────────────────────────────────────────
+test("addNodes adds multiple nodes in both direct and tuple formats", async t => {
+    const graph = createGraph({ keyEncoding: "json" });
+
+    // Create some nodes.
+    const node1 = createNode(1);
+    const node2 = createNode(2);
+    const node3 = createNode(3);
+
+    // Add nodes using the direct format (node objects).
+    graph.addNodes([node1, node2]);
+
+    // Add node3 using the tuple format with a custom id.
+    graph.addNodes([["custom-node3", node3]]);
+
+    // Verify that the graph has all nodes.
+    t.ok(graph.hasNode(node1), "Graph contains node1 using its generated id");
+    t.ok(graph.hasNode(node2), "Graph contains node2 using its generated id");
+    t.ok(graph.hasNode("custom-node3"), "Graph contains node3 using its custom id");
+
+    // Verify that getNode returns the correct node for the custom id.
+    t.is(graph.getNode("custom-node3"), node3, "getNode returns node3 for custom id");
+});
+
+// ─────────────────────────────────────────────
+// Test for connect overloads accepting arrays and single nodes
+// ─────────────────────────────────────────────
+test("connect overload supports mixed array and single node arguments", async t => {
+    const graph = createGraph({ keyEncoding: "json" });
+
+    // Create nodes.
+    const a = createNode(10);
+    const b = createNode(20);
+    const c = createNode(30);
+    // d is a computed node that sums its dependency values.
+    const d = createNode(values => values.reduce((acc, x) => acc + x, 0));
+
+    // Add nodes to the graph.
+    graph.addNode(a);
+    graph.addNode(b);
+    graph.addNode(c);
+    graph.addNode(d);
+
+    // 1. Connect single source to an array of targets:
+    // Connect node 'a' to both 'b' and 'c'
+    graph.connect(a, [b, c]);
+
+    // 2. Connect an array of sources to a single target:
+    // Connect both 'b' and 'c' to computed node 'd'
+    graph.connect([b, c], d);
+
+    // For computed node d, its dependency values should be [20, 30] so d.value should be 50.
+    t.is(d.value, 50, "d's computed value equals 20 + 30 (50)");
+
+    // 3. Test connecting arrays for both source and target:
+    // Create additional nodes.
+    const e = createNode(5);
+    const f = createNode(6);
+    // g is a computed node that multiplies its dependency values.
+    const g = createNode(values => values.reduce((acc, x) => acc * x, 1));
+
+    // Add nodes using addNodes (mixing direct format).
+    graph.addNodes([e, f]);
+    graph.addNode(g);
+
+    // Connect an array of sources to an array of targets:
+    // Connect nodes 'a' and 'b' to both 'e' and 'f'
+    graph.connect([a, b], [e, f]);
+    // Then, connect nodes 'e' and 'f' to computed node 'g'
+    graph.connect([e, f], g);
+
+    // Since e.value = 5 and f.value = 6, g.value should equal 30.
+    t.is(g.value, 30, "g's computed value equals 5 * 6 (30)");
+});
+
+// ─────────────────────────────────────────────
+// 1. Test Overloaded disconnect()
+// ─────────────────────────────────────────────
+test("disconnect overload works", async t => {
+    const graph = createGraph({ keyEncoding: "utf8" });
+
+    // Create nodes.
+    const a = createNode("A");
+    const b = createNode("B");
+    const c = createNode("C");
+    const d = createNode("D");
+
+    // Add nodes to the graph.
+    graph.addNode(a);
+    graph.addNode(b);
+    graph.addNode(c);
+    graph.addNode(d);
+
+    // Create connections:
+    // a -> b and a -> c, plus b -> d and c -> d.
+    graph.connect(a, [b, c]);
+    graph.connect(b, d);
+    graph.connect(c, d);
+
+    // Verify that the expected edges exist.
+    t.ok(graph.hasEdge(a, b), "Edge A -> B exists");
+    t.ok(graph.hasEdge(a, c), "Edge A -> C exists");
+    t.ok(graph.hasEdge(b, d), "Edge B -> D exists");
+    t.ok(graph.hasEdge(c, d), "Edge C -> D exists");
+
+    // Disconnect A from both B and C using an array for the target.
+    graph.disconnect(a, [b, c]);
+    t.absent(graph.hasEdge(a, b), "Edge A -> B removed");
+    t.absent(graph.hasEdge(a, c), "Edge A -> C removed");
+
+    // The remaining edges should still exist.
+    t.ok(graph.hasEdge(b, d), "Edge B -> D still exists");
+    t.ok(graph.hasEdge(c, d), "Edge C -> D still exists");
+
+    // Now disconnect multiple sources from a single target.
+    graph.disconnect([b, c], d);
+    t.absent(graph.hasEdge(b, d), "Edge B -> D removed");
+    t.absent(graph.hasEdge(c, d), "Edge C -> D removed");
+});
+
+// ─────────────────────────────────────────────
+// 2. Test getNodes()
+// ─────────────────────────────────────────────
+test("getNodes returns all nodes", async t => {
+    const graph = createGraph({ keyEncoding: "utf8" });
+
+    // Create nodes.
+    const a = createNode("A");
+    const b = createNode("B");
+    const c = createNode("C");
+
+    // Add nodes using addNodes.
+    graph.addNodes([a, b, c]);
+
+    const nodes = graph.getNodes();
+    t.is(nodes.length, 3, "getNodes returns three nodes");
+    t.ok(nodes.includes(a), "Nodes include A");
+    t.ok(nodes.includes(b), "Nodes include B");
+    t.ok(nodes.includes(c), "Nodes include C");
+});
+
+// ─────────────────────────────────────────────
+// 3. Test getEdges()
+// ─────────────────────────────────────────────
+test("getEdges returns all edges", async t => {
+    const graph = createGraph({ keyEncoding: "utf8" });
+
+    // Create nodes.
+    const a = createNode("A");
+    const b = createNode("B");
+    const c = createNode("C");
+
+    // Add nodes.
+    graph.addNodes([a, b, c]);
+
+    // Connect nodes: A -> B, A -> C, and B -> C.
+    graph.connect(a, [b, c]);
+    graph.connect(b, c);
+
+    const edges = graph.getEdges();
+    t.is(edges.length, 3, "getEdges returns three edges");
+
+    // Validate each edge by checking the source and target node ids.
+    const edgeAB = edges.find(edge => edge.src.id === a.id && edge.tgt.id === b.id);
+    const edgeAC = edges.find(edge => edge.src.id === a.id && edge.tgt.id === c.id);
+    const edgeBC = edges.find(edge => edge.src.id === b.id && edge.tgt.id === c.id);
+
+    t.ok(edgeAB, "Edge A -> B exists in getEdges");
+    t.ok(edgeAC, "Edge A -> C exists in getEdges");
+    t.ok(edgeBC, "Edge B -> C exists in getEdges");
+});
+
+// ─────────────────────────────────────────────
+// 4. Test findNode()
+// ─────────────────────────────────────────────
+test("findNode returns the correct node based on value", async t => {
+    const graph = createGraph({ keyEncoding: "utf8" });
+
+    // Create nodes with distinctive values.
+    const a = createNode("A");
+    const b = createNode("B");
+    const target = createNode("TARGET");
+
+    // Add nodes.
+    graph.addNodes([a, b, target]);
+
+    // Use findNode with a predicate to match the target node by its value.
+    const found = graph.findNode(node => node.value === "TARGET");
+    t.is(found, target, "findNode returns the node with value TARGET");
+
+    // Test that findNode returns null when no node matches.
+    const notFound = graph.findNode(node => node.value === "NON_EXISTENT");
+    t.is(notFound, null, "findNode returns null when no node matches");
+});

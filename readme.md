@@ -99,8 +99,8 @@ Nodes are added to the graph using either the single or batch methods:
 
 - **`addNode(node)` or `addNode(id, node)`**  
   Adds a single node to the graph.
-  - When called with one argument, the node’s internally generated identifier (typically derived from a property like `id`) is used.
-  - When called with two arguments, the first argument is treated as a custom identifier, and the provided node is associated with that key.
+  - When called with one argument, the node’s internally generated identifier is used.
+  - When called with two arguments, the first argument is treated as a custom identifier and the provided node is associated with that key.
 
   **Examples:**
   ```js
@@ -135,13 +135,40 @@ Nodes are added to the graph using either the single or batch methods:
   Removes a node and all its connections.
 
 - **`connect(srcRef, tgtRef)`**  
-  Adds an edge from the source node to the target node (with automatic cycle prevention).
+  Adds an edge from the source node to the target node (with automatic cycle prevention). This method is overloaded so that either parameter may be a single node (or node id) or an array of nodes. Every source node is connected to every target node.
+
+  **Examples:**
+  ```js
+  // Connect a single node to a single node:
+  graph.connect(node1, node2);
+
+  // Connect a single node to multiple nodes:
+  graph.connect(node1, [node2, node3]);
+
+  // Connect multiple nodes to a single node:
+  graph.connect([node1, node2], node3);
+
+  // Connect multiple nodes to multiple nodes:
+  graph.connect([node1, node2], [node3, node4]);
+  ```
 
 - **`disconnect(srcRef, tgtRef)`**  
-  Removes the edge from the source to the target node.
+  Removes the edge from the source to the target node. Like `connect`, this method is overloaded to support both single values and arrays for either parameter.
+
+  **Examples:**
+  ```js
+  // Disconnect a single edge:
+  graph.disconnect(node1, node2);
+
+  // Disconnect one node from multiple targets:
+  graph.disconnect(node1, [node2, node3]);
+
+  // Disconnect multiple nodes from one target:
+  graph.disconnect([node1, node2], node3);
+  ```
 
 - **`topologicalSort()`**  
-  Returns a topologically sorted array of node keys.
+  Returns an array of node keys sorted in topological order. Nodes with no incoming edges come first.
 
 - **`update()`**  
   Recomputes all computed nodes in topological order.
@@ -152,17 +179,26 @@ Nodes are added to the graph using either the single or batch methods:
 - **`getNode(ref | array)`**  
   Retrieves a node (or an array of nodes) by reference.
 
+- **`getNodes()`**  
+  Returns an array of all nodes in the graph.
+
+- **`getEdges()`**  
+  Returns an array of all edges in the graph. Each edge is represented as an object with two properties: `src` and `tgt`, corresponding to the source and target nodes.
+
+- **`findNode(predicate)`**  
+  Scans all nodes and returns the first node that satisfies the provided predicate function. If no node matches, it returns `null`.
+
 - **`getImmediatePredecessors(ref)`**  
-  Gets the direct dependency nodes of a given node.
+  Returns the direct dependency nodes (i.e. immediate sources) of the given node.
 
 - **`getPredecessors(ref, { transitive: true })`**  
-  Gets all (transitive) dependency nodes.
+  Returns all (transitive) predecessor nodes, meaning all nodes that can reach the given node.
 
 - **`getImmediateSuccessors(ref)`**  
-  Gets the nodes that depend directly on a given node.
+  Returns the nodes that directly depend on the given node.
 
 - **`getSuccessors(ref, { transitive: true })`**  
-  Gets all (transitive) dependent nodes.
+  Returns all (transitive) dependent nodes reachable from the given node.
 
 - **`getSources()`**  
   Retrieves all nodes with no incoming edges.
@@ -171,13 +207,13 @@ Nodes are added to the graph using either the single or batch methods:
   Retrieves all nodes with no outgoing edges.
 
 - **`toString()`**  
-  Returns a human-readable string representation of the graph.
+  Returns a human-readable string representation of the graph, where each line represents an edge in the format "source -> target".
 
 - **`findPath(srcRef, tgtRef)`**  
-  Finds a dependency path (an array of keys) from the source to the target node.
+  Finds a dependency path (an array of node keys) from the source to the target node. Returns `null` if no path exists.
 
 - **`getInDegree(ref)`** / **`getOutDegree(ref)`**  
-  Returns the number of incoming or outgoing edges for a node.
+  Returns the number of incoming or outgoing edges for a given node.
 
 - **`hasNode(ref)`**  
   Checks if the node exists in the graph.
