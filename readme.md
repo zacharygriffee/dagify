@@ -22,6 +22,7 @@ Dagify is a lightweight functional-reactive programming (FRP) library for buildi
   - [Advanced Node Features](#advanced-node-features)
 - [Contributing](#contributing)
 - [License](#license)
+- [Recent Commit](#recent-commit)
 
 ## Installation
 
@@ -128,6 +129,20 @@ Nodes are added to the graph using either the single or batch methods:
        ["nine", node2]
      ]);
      ```
+
+- **`upsertNode(node)` or `upsertNode(id, node)`**  
+  Retrieves an existing node or adds a new one if it does not exist. This method supports both a full dagify node object (with an auto-generated id) and a tuple format (custom id plus node).
+
+  **Example:**
+  ```js
+  // Using the node’s generated id:
+  const nodeA = createNode(1);
+  const a = graph.upsertNode(nodeA);
+
+  // Using a custom id:
+  const nodeB = createNode(2);
+  const b = graph.upsertNode("two", nodeB);
+  ```
 
 **Other Key Methods:**
 
@@ -509,3 +524,13 @@ Contributions are welcome! Please open an issue or submit a pull request for imp
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Recent Commit
+
+**Commit:** *Reverted DSL/JSON graph creation support*
+
+In this commit, support for creating graphs via DSL/JSON was removed. This decision was made because embedding values and computed functions in a DSL/JSON format posed significant challenges—each node needs to have either a value or a computed function, and handling uninitialized nodes or stringified functions (which may introduce security risks) made the approach impractical.
+
+Graph creation now must be performed programmatically using the code-based API (e.g., using `createGraph()`, `createNode()`, etc.), which ensures clarity, type-safety, and security.
+
+```
