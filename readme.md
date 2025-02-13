@@ -144,6 +144,51 @@ Nodes are added to the graph using either the single or batch methods:
   const b = graph.upsertNode("two", nodeB);
   ```
 
+---
+
+### Node Factory API
+
+The `nodeFactory` function provides a convenient, lazy mechanism to create and manage nodes on-demand. It returns a proxy that:
+
+- **Lazily creates nodes:**  
+  When a property is accessed on the factory, it calls `createNode(value, deps)` to create a new node and caches it.
+  - For **computed nodes** (when `value` is a function), the supplied dependencies (`deps`) are applied.
+  - For **non-computed nodes** (when `value` is not a function), dependencies are ignored.
+
+- **Supports iteration:**  
+  The proxy implements the iterator protocol, yielding sequentially created nodes (up to a maximum specified by the `max` parameter).
+  > **Note:** Exceeding the maximum number of nodes (default is 1000) throws an error.
+
+- **Provides a clear method:**  
+  The factory exposes a `clear()` method that deletes all cached nodes. For each deleted node, if it has a `complete()` method, that method is invoked before removal.
+
+**Example Usage:**
+
+```js
+import { nodeFactory } from "dagify";
+
+// For computed nodes (with dependencies):
+const computedFactory = nodeFactory(
+  (deps) => deps.reduce((sum, node) => sum + node.value, 0),
+  [dep1, dep2]
+);
+const computedNode = computedFactory.someKey;
+console.log("Computed node value:", computedNode.value);
+
+// For non-computed (static) nodes, dependencies are ignored:
+const staticFactory = nodeFactory(42, [dep1, dep2]);
+const staticNode = staticFactory.someKey;
+console.log("Static node value:", staticNode.value);
+
+// Iterating over nodes:
+for (const node of computedFactory) {
+  console.log("Iterated node:", node);
+  break; // Remember to break to avoid infinite iteration
+}
+
+// Clearing all nodes:
+computedFactory.clear();
+```
 **Other Key Methods:**
 
 - **`removeNode(nodeRef)`**  

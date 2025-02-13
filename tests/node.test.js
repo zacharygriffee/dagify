@@ -1,7 +1,8 @@
 import {solo, test} from "brittle";
-import {batch, createNode} from "../index.js";
-import {concatMap, delay, interval, of, startWith, take, tap} from "rxjs";
+import {batch, createComposite, createNode} from "../index.js";
+import {concat, delay, firstValueFrom, from, interval, map, of, startWith, take, tap, toArray, zip, zipAll} from "rxjs";
 import {takeUntilCompleted} from "../lib/util/takeUntilCompleted.js";
+import {nodeFactory} from "../lib/nodeFactory.js";
 // Helper: sleep function
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -86,11 +87,11 @@ test("createNode should unsubscribe correctly", (t) => {
     t.plan(1);
     const node = createNode(0);
 
-    const unsubscribe = node.skip.subscribe((a) => {
+    const unsub = node.skip.subscribe((a) => {
         t.fail("Subscriber should not be called after unsubscribe");
     });
 
-    unsubscribe();
+    unsub.unsubscribe();
     node.set(100);
 
     t.pass("Unsubscription should prevent further calls");
@@ -513,4 +514,40 @@ test("Node has a node", async t => {
     }, a);
     t.is(a.value, 10);
     t.is(c.value, 1);
+});
+
+test("Node factory object", async t => {
+    const {node1, node2} = nodeFactory(5);
+    t.is(node1.value, 5);
+    t.is(node1.value, node2.value);
+    const nodes = nodeFactory(6);
+
+    nodes.x.set(5);
+    nodes.y.set(1);
+    nodes.z.set(1001);
+    nodes.w;
+
+    nodes.x.once.subscribe(x => t.is(x, 5));
+
+    const test = createComposite(nodes);
+    const comp = createNode(([{x, y, z, w}]) => `${x} ${y} ${z} ${w}`, [test]);
+
+    t.is(comp.value, "5 1 1001 6");
+
+    nodes.clear();
+    comp.complete();
+    test.complete();
+});
+
+test("Node factory array", async t => {
+    const [x,y,z] = nodeFactory("hello");
+    y.set("world");
+    z.next("!!!");
+
+    const value = await firstValueFrom(concat(x.once, y.once, z.once).pipe(take(3), toArray(), map(x => {
+        console.log(x);
+        return x.join(" ");
+    })));
+
+    t.is(value, "hello world !!!");
 });

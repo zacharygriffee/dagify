@@ -1,7 +1,7 @@
-import { ReactiveNode, setIdGenerator } from "./lib/ReactiveNode.js";
-import { fromObservable } from "./lib/util/fromObservable.js";
-import { ReactiveGraph } from "./lib/ReactiveGraph.js";
-import { Composite } from "./lib/Composite.js";
+import {ReactiveNode, setIdGenerator} from "./lib/ReactiveNode.js";
+import {fromObservable} from "./lib/util/fromObservable.js";
+import {ReactiveGraph} from "./lib/ReactiveGraph.js";
+import {Composite} from "./lib/Composite.js";
 
 /**
  * Creates a new reactive node.
@@ -11,6 +11,8 @@ import { Composite } from "./lib/Composite.js";
  * @returns {ReactiveNode} A new reactive node.
  */
 const createNode = (fnOrValue, dependencies = []) => new ReactiveNode(fnOrValue, dependencies);
+
+
 
 /**
  * Creates a new reactive graph.
@@ -39,7 +41,7 @@ const createComposite = (nodes) => {
  * @param {function} fn - A function containing multiple updates.
  */
 const batch = (fn) => ReactiveNode.batch(fn);
-
+// const proxy = (node) => ReactiveNode.proxify(node);
 export { takeUntilCompleted } from "./lib/util/takeUntilCompleted.js";
 export * from "./lib/nodes/index.js";
 export { createNode, createGraph, createComposite, batch, fromObservable, setIdGenerator};
