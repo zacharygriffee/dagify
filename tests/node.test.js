@@ -571,6 +571,144 @@ test("pass a node as static", async t => {
     t.is(node3.value, 20);
 });
 
+test("Pass a function as a dependency", async t => {
+    const x = createNode(([y]) => y + 2, [() => 3]);
+    t.is(x.value, 5)
+});
+
+test("Pass an async function as a dependnency", async t => {
+    const x = createNode(([y]) => y ? y + 2 : 0, [async () => 3]);
+    t.is(x.value, 0);
+    await sleep(0);
+    t.is(x.value, 5);
+});
+
+test("Pass a function with side effect values", async t => {
+    t.plan(1);
+    let n = 0;
+    const getter = () => n;
+
+    const x = createNode(([y]) => {
+        return y * 2 || 50;
+    }, [getter]);
+    const values = [];
+    x.subscribe(
+        {
+            next: o => {
+                values.push(o);
+                if (values.length === 4) {
+                    clearInterval(timer);
+                    x.complete();
+                }
+            },
+            complete: () => {
+                t.alike([50, 2, 4, 6], values, "Values emitted are correct");
+            }
+        }
+    );
+
+    const timer = setInterval(() => {
+        x.update();
+        return n++;
+    }, 100);
+});
+
+test("Synchronous function dependency re-computes correctly", async t => {
+    let counter = 10;
+    const getter = () => counter;
+    const node = createNode(([v]) => v + 1, [getter]);
+
+    t.is(node.value, 11, "Initial value is 11");
+
+    counter = 20;
+    node.update();
+    t.is(node.value, 21, "Value updates to 21 after changing counter");
+});
+
+test("Async function dependency re-computes correctly", async t => {
+    let num = 5;
+    const getter = async () => {
+        await new Promise(r => setTimeout(r, 10));
+        return num;
+    };
+
+    const node = createNode(([v]) => v * 3, [getter]);
+
+    // Wait a little for the async dependency to resolve.
+    await sleep(20);
+    t.is(node.value, 15, "Value is 15 after async dependency resolves");
+
+    num = 7;
+    node.update();
+    await sleep(20);
+    t.is(node.value, 21, "Value updates to 21 after async dependency changes");
+});
+
+test("Remove dependency in positional mode", async t => {
+    let a = 2, b = 3;
+    const dep1 = () => a;
+    const dep2 = () => b;
+    const node = createNode(([x, y = 0]) => x + y, [dep1, dep2]);
+
+    t.is(node.value, 5, "Initial sum is 5");
+
+    // Remove dep2 and expect only dep1's value to be used.
+    node.removeDependency(dep2);
+    node.update();
+    await sleep(10);
+    t.is(node.value, 2, "After removal, value is 2");
+});
+
+test("Remove dependency in named mode", async t => {
+    let a = 10, b = 20;
+    const node = createNode(
+        ({ a, b }) => (a || 0) + (b || 0),
+        { a: () => a, b: () => b }
+    );
+
+    await new Promise(r => setTimeout(r, 10));
+    t.is(node.value, 30, "Initial sum is 30");
+
+    // Remove dependency by key
+    node.removeDependency("b");
+    node.update();
+    await new Promise(r => setTimeout(r, 10));
+    t.is(node.value, 10, "After removal of b, value is 10");
+});
+
+test("Force update on stateful node re-emits same value", async t => {
+    const state = createNode(100);
+    let emissions = [];
+    state.subscribe(v => emissions.push(v));
+
+    // Calling set(100) or update() on a stateful node that doesn't change value normally wouldn't re-emit.
+    state.update();
+    await sleep();
+    t.is(emissions.length, 2, "update() forces a re-emission even if value is unchanged");
+});
+
+test("update() on stateful node works with both function and direct value", async t => {
+    const state = createNode(50);
+    let emitted;
+    state.subscribe(v => emitted = v);
+
+    // Update with a function: increment by 10.
+    state.update(val => val + 10);
+    await sleep();
+    t.is(emitted, 60, "Value becomes 60 after function update");
+
+    // Update with a direct value.
+    state.update(100);
+    await sleep();
+    t.is(emitted, 100, "Value becomes 100 after direct update");
+
+    // Force re-emit current value.
+    state.update();
+    await sleep();
+    t.is(emitted, 100, "Re-emission returns the same value");
+});
+
+
 test("computed node in object mode", async t => {
     // Create individual stateful nodes.
     const a = createNode(10);

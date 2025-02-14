@@ -13,6 +13,8 @@ Dagify is a lightweight functional-reactive programming (FRP) library for buildi
 - [Installation](#installation)
 - [API Reference](#api-reference)
   - [ReactiveNode API](#reactivenode-api)
+    - [Update Behavior for Stateful Nodes](#update-behavior-for-stateful-nodes)
+    - [Function and Async Function Dependencies](#function-and-async-function-dependencies)
   - [ReactiveGraph API](#reactivegraph-api)
   - [Composite Nodes](#composite-nodes)
   - [Helper Functions](#helper-functions)
@@ -44,7 +46,21 @@ Create nodes using `createNode()`. A ReactiveNode supports both stateful (manual
   Sets a new value (for stateful nodes).
 
 - **`update(fn)`**  
-  Updates the node’s value by applying a function to the current value. For computed nodes, this triggers recomputation.
+  Updates the node’s value. For computed nodes, this triggers recomputation.  
+  For stateful nodes, `update()` now **forces a re-emission** of the current value by default—even if that value is deep-equal to the previous one. This makes it ideal for triggering refreshes of function dependencies that are meant to reflect side effects or asynchronous results.
+
+  For example:
+
+  ```js
+  // Re-emits the current value (even if unchanged)
+  count.update(); 
+  
+  // Updates based on a function:
+  count.update(val => val + 1);
+  
+  // Works similar to set():
+  count.update(42);
+  ```
 
 - **`subscribe(callback)`**  
   Subscribes to value changes.
@@ -66,6 +82,7 @@ Create nodes using `createNode()`. A ReactiveNode supports both stateful (manual
 
 - **`addDependency(...args)`** and **`removeDependency(...args)`**  
   Manage dependencies for computed nodes using a unified API.
+
   - In **positional (array) mode** (when the computed node’s dependency was provided as an array), you may:
     - **Add dependencies:**
       ```js
@@ -109,58 +126,28 @@ Create nodes using `createNode()`. A ReactiveNode supports both stateful (manual
 > **Svelte Compatibility:**  
 > Dagify nodes follow a similar API to Svelte stores, so they can be used directly in Svelte applications for reactive state management.
 
-**New Argument Structure for Computed Nodes:**
+#### Update Behavior for Stateful Nodes
 
-Computed nodes now require a **single dependency argument**. That dependency may be provided either as:
+Stateful nodes (created with non-function values) use `update()` as a distinct API method that **forces a re-emission** by default. This means that even if the new value is deep‑equal to the old value, subscribers are notified. This behavior contrasts with `set()`/`next()`, which only emit when the new value is different.
 
-- **An array (positional dependencies):**  
-  In this mode you pass an array containing your dependencies. When the computed function is invoked, its parameter will reflect the shape of the dependency argument in one of two ways:
+#### Function and Async Function Dependencies
 
-  - If the computed function is declared with exactly one parameter, it will receive the entire array as-is.
-  - If the function is declared with a rest parameter (or with zero declared parameters), the dependency array is spread into separate arguments.
+When you pass a function (or async function) as a dependency to `createNode()`, it is automatically wrapped as a computed node with no dependencies:
 
-  **Examples:**
+```js
+// In normalizeDependency:
+} else if (typeof dep === 'function') {
+    // Instead of wrapping with from/defer,
+    // wrap the function into a computed node with no dependencies.
+    return createNode(dep, []);
+}
+```
 
-  ```js
-  import { createNode } from "dagify";
-
-  const node1 = createNode(10);
-  const node2 = createNode(20);
-
-  // Here the computed function expects a single argument,
-  // so it receives the dependency array [node1.value, node2.value].
-  const computedA = createNode(
-    (values) => values.reduce((acc, x) => acc + x, 0),
-    [node1, node2]
-  );
-  
-  // Here the computed function is defined with a rest parameter.
-  // Its declared parameter count is 0 so the dependency array is spread.
-  const computedB = createNode(
-    (...values) => values.reduce((acc, x) => acc + x, 0),
-    [node1, node2]
-  );
-  ```
-
-- **An object (named dependencies):**  
-  In this mode you pass an object whose keys map to dependency nodes. The computed function will be invoked with that object.
-
-  **Example:**
-
-  ```js
-  import { createNode } from "dagify";
-
-  const nodeA = createNode(10);
-  const nodeB = createNode(20);
-
-  const computed = createNode(
-    ({ a, b }) => a + b,
-    { a: nodeA, b: nodeB }
-  );
-  ```
-
-> **Important:**  
-> The legacy API of passing multiple dependency arguments (e.g., `createNode(fn, dep1, dep2)`) is no longer supported.
+This wrapping ensures that:
+- **Synchronous functions** are re-evaluated every time the parent node updates.
+- **Async functions** (e.g. `async () => 3`) are treated as computed nodes that resolve asynchronously; their value is incorporated once the promise resolves.
+- This design provides more intuitive, implicit reactivity for function dependencies.
+- To force a refresh of a dependency that has side effects, simply call `update()` on the parent node. The wrapped function dependency will re-run and the latest value will be pulled into the computation.
 
 ### ReactiveGraph API
 
@@ -227,8 +214,6 @@ Nodes are added to the graph using either the single or batch methods:
   const nodeB = createNode(2);
   const b = graph.upsertNode("two", nodeB);
   ```
-
----
 
 ### Node Factory API
 
@@ -471,6 +456,25 @@ asyncDouble.subscribe(val => console.log("Async double:", val));
 count.set(4); // Eventually logs "Async double: 8"
 ```
 
+#### Function/Async Function Dependencies with Side Effects
+
+When you pass a function (or async function) as a dependency, it is automatically wrapped as a computed node with no dependencies. This ensures that on every parent update, the function is re-evaluated. For example:
+
+```js
+// A synchronous function dependency:
+const getter = () => someValue;
+const x = createNode(([y]) => y + 2, [getter]);
+
+// An asynchronous function dependency:
+const asyncGetter = async () => {
+  // some asynchronous work...
+  return someValue;
+};
+const y = createNode(([v]) => v * 2, [asyncGetter]);
+```
+
+If your function has side effects, calling `update()` on the parent node will force re-computation of these dependencies, ensuring that the latest value (or side effect) is pulled in.
+
 ### Managing a Reactive Graph
 
 ```js
@@ -559,3 +563,12 @@ Contributions are welcome! Please open an issue or submit a pull request for imp
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Recent Commit
+
+**Commit:** *Refactor update behavior and function/async function dependency handling*
+
+- The `update()` method for stateful nodes now forces a re-emission by default (bypassing deep equality).
+- Function (and async function) dependencies are automatically wrapped as computed nodes with no dependencies, ensuring they re-evaluate on each parent update.
+- Adjusted dependency removal logic to correctly identify and remove function dependencies by comparing the underlying function.
+- Added documentation and examples to clarify the behavior for function/async function dependencies.
