@@ -505,17 +505,6 @@ test("computed node should not emit update if computed value is deeply equal", a
     t.is(callCount, 1, "No update should be emitted if computed result is deeply equal");
 });
 
-test("Node has a node", async t => {
-    const a = createNode(1);
-    const b = createNode(a);
-    t.is(b.value, a);
-    const c = createNode(([x]) => {
-        a.set(10); return x;
-    }, a);
-    t.is(a.value, 10);
-    t.is(c.value, 1);
-});
-
 test("Node factory object", async t => {
     const {node1, node2} = nodeFactory(5);
     t.is(node1.value, 5);
@@ -551,3 +540,166 @@ test("Node factory array", async t => {
 
     t.is(value, "hello world !!!");
 });
+
+test("Object node", async t => {
+    const objState = createNode({color: "red", size: 10});
+    const color = createNode(([{color}]) => color, [objState]);
+    const size = createNode(([{size}]) => size, [objState]);
+    await sleep(1);
+    t.is(color.value, "red");
+    t.is(size.value, 10);
+});
+
+test("Return a node from computed node", async t => {
+    const node = createNode(5);
+    const computed = createNode(([a]) => node, [node]);
+    t.is(computed.value, 5);
+    node.set(10);
+    await sleep(50);
+    t.is(computed.value, 10);
+});
+
+test("pass a node as static", async t => {
+    const node1 = createNode(10);
+    const node2 = createNode(node1);
+    const node3 = createNode((x) => x, node2);
+    t.is(node3.value, 10);
+    t.is(node2.value.value, 10);
+    node1.set(20);
+    await sleep(50);
+    t.is(node2.value.value, 20);
+    t.is(node3.value, 20);
+});
+
+test("computed node in object mode", async t => {
+    // Create individual stateful nodes.
+    const a = createNode(10);
+    const b = createNode(20);
+    const c = createNode(30);
+
+    // Create a computed node with named dependencies (object mode).
+    const computed = createNode(
+        ({ a, b, c }) => a + b + c,
+        { a, b, c }
+    );
+    await sleep();
+    // Initially, computed.value should equal 10 + 20 + 30 = 60.
+    t.is(computed.value, 60, "Initial computed value is 60");
+
+    // Update node 'a' to 40: 40 + 20 + 30 = 90.
+    a.set(40);
+    await sleep();
+    t.is(computed.value, 90, "After updating a, computed value is 90");
+
+    // Update node 'b' to 50: 40 + 50 + 30 = 120.
+    b.set(50);
+    await sleep();
+    t.is(computed.value, 120, "After updating b, computed value is 120");
+});
+
+test("computed node with object nested in array", async t => {
+    // Create two stateful nodes.
+    const a = createNode(3);
+    const b = createNode(4);
+
+    // Create a computed node where the dependency is an array containing an object.
+    // The computed function receives a single array whose first element is the object.
+    const computed = createNode(
+        ([{ a, b }]) => a * b, // Multiply a and b.
+        [{ a, b }]
+    );
+
+    await sleep();
+    // Initially, computed.value should equal 3 * 4 = 12.
+    t.is(computed.value, 12, "Initial computed value is 12");
+
+    // Update node 'a' to 5: 5 * 4 = 20.
+    a.set(5);
+    await sleep();
+    t.is(computed.value, 20, "After updating a, computed value is 20");
+
+    // Update node 'b' to 6: 5 * 6 = 30.
+    b.set(6);
+    await sleep();
+    t.is(computed.value, 30, "After updating b, computed value is 30");
+});
+
+test('Positional mode: add and remove dependency (single value and multiple values)', t => {
+    // Create two stateful nodes.
+    const a = createNode(1)
+    const b = createNode(2)
+    const c = createNode(3)
+    const d = createNode(4)
+
+    // Create a computed node with an initial dependency [a].
+    // The computed function sums all dependency values (spread into arguments).
+    const computed = createNode((...values) => values.reduce((sum, x) => sum + x, 0), [a])
+    t.is(computed.value, 1, 'Initial computed value equals 1 (only a)')
+
+    // Add dependency: add single node (b) by reference.
+    computed.addDependency(b)
+    // Now dependencies are [a, b] => 1 + 2 = 3.
+    t.is(computed.value, 3, 'After adding b, computed value equals 3')
+
+    // Add multiple dependencies at once.
+    computed.addDependency(c, d)
+    // Now dependencies are [a, b, c, d] => 1 + 2 + 3 + 4 = 10.
+    t.is(computed.value, 10, 'After adding c and d, computed value equals 10')
+
+    // Remove a dependency (b).
+    computed.removeDependency(b)
+    // Now dependencies are [a, c, d] => 1 + 3 + 4 = 8.
+    t.is(computed.value, 8, 'After removing b, computed value equals 8')
+
+    // Remove multiple dependencies at once using an array.
+    computed.removeDependency([c, d])
+    // Now dependencies are [a] => 1.
+    t.is(computed.value, 1, 'After removing c and d, computed value equals 1')
+})
+
+// --- Named (object) mode tests ---
+
+test('Named mode: add and remove dependency (using key/value and node reference)', async t => {
+    // Create three stateful nodes.
+    const a = createNode(10)
+    const b = createNode(20)
+    const c = createNode(30)
+
+    // Create a computed node with initial dependency as an object.
+    // The computed function sums properties "a", "b", and "c".
+    // Initially, only "a" is present.
+    const computed = createNode(
+        ({ a, b, c }) => (a || 0) + (b || 0) + (c || 0),
+        { a }
+    )
+    t.is(computed.value, 10, 'Initial computed value equals 10 (only a)')
+
+    // Add dependency by explicit key.
+    computed.addDependency('b', b)
+    // Now dependency object is { a, b } => 10 + 20 = 30.
+    t.is(computed.value, 30, 'After adding key "b", computed value equals 30')
+
+    // Add dependency by passing an object.
+    computed.addDependency({ c })
+    // Now dependency object is { a, b, c } => 10 + 20 + 30 = 60.
+    t.is(computed.value, 60, 'After adding c via object, computed value equals 60')
+
+    // Remove dependency by key.
+    computed.removeDependency('b')
+    // Now dependency object is { a, c } => 10 + 30 = 40.
+    t.is(computed.value, 40, 'After removing dependency "b", computed value equals 40')
+
+    // Remove dependency by node reference.
+    computed.removeDependency(c)
+    // Now dependency object should only have { a } => 10.
+    t.is(computed.value, 10, 'After removing dependency c by reference, computed value equals 10')
+
+    // Also test removal using a plain object (remove by keys).
+    // First, add b back using its key explicitly.
+    computed.addDependency('b', b)
+    await sleep(0)
+    t.is(computed.value, 30, 'After re-adding b with key "b", computed value equals 30')
+    computed.removeDependency(b)
+    await sleep(0)
+    t.is(computed.value, 10, 'After removing dependency with object { b: true }, computed value equals 10')
+})

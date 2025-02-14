@@ -526,7 +526,7 @@ test("connect overload supports mixed array and single node arguments", async t 
     const b = createNode(20);
     const c = createNode(30);
     // d is a computed node that sums its dependency values.
-    const d = createNode(values => values.reduce((acc, x) => acc + x, 0));
+    const d = createNode((...values) => values.reduce((acc, x) => acc + x, 0));
 
     // Add nodes to the graph.
     graph.addNode(a);
