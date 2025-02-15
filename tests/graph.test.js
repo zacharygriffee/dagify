@@ -1,5 +1,6 @@
 import {solo, test} from "brittle";
 import {createGraph, createNode} from "../index.js";
+import {ReactiveGraph} from "../lib/ReactiveGraph.js";
 
 test("graph basic test", async t => {
     const graph = createGraph({keyEncoding: "json"});
@@ -684,3 +685,43 @@ test("findNode returns the correct node based on value", async t => {
     const notFound = graph.findNode(node => node.value === "NON_EXISTENT");
     t.is(notFound, null, "findNode returns null when no node matches");
 });
+
+test('addNode tuple mode updates node internal id', t => {
+    const graph = new ReactiveGraph({ keyEncoding: "utf8" })
+    const node = createNode(10)
+
+    // Add the node using tuple mode with a custom id.
+    graph.addNode("custom", node)
+
+    // Since graph stores node ids as Buffers, we decode the node.id.
+    t.is(graph.decodeKey(node.id), "custom", "node's id should be updated to the provided custom id")
+
+    // Verify that the graph has the node under the custom id.
+    t.ok(graph.hasNode("custom"), "graph should have node with custom id")
+})
+
+test('addNode tuple mode throws error for duplicate id', t => {
+    const graph = new ReactiveGraph({ keyEncoding: "utf8" })
+    const node1 = createNode(10)
+    const node2 = createNode(20)
+
+    graph.addNode("dup", node1)
+
+    // Adding another node with the same custom id should throw an error.
+    t.exception(() => {
+        graph.addNode("dup", node2)
+    }, "Adding a duplicate node id should throw an error")
+})
+
+test('connect nodes added with custom ids works correctly', t => {
+    const graph = new ReactiveGraph({ keyEncoding: "utf8" })
+    const node1 = createNode(5)
+    const node2 = createNode(() => 6)
+
+    graph.addNode("node1", node1)
+    graph.addNode("node2", node2)
+
+    graph.connect("node1", "node2")
+    // Connecting nodes using their custom ids should not throw an error.
+    t.pass("Connecting nodes with custom ids should work without errors")
+})
