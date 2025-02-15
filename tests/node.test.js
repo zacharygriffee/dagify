@@ -3,8 +3,7 @@ import {batch, createComposite, createNode} from "../index.js";
 import {concat, delay, firstValueFrom, from, interval, map, of, startWith, take, tap, toArray, zip, zipAll} from "rxjs";
 import {takeUntilCompleted} from "../lib/util/takeUntilCompleted.js";
 import {nodeFactory} from "../lib/nodeFactory.js";
-// Helper: sleep function
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import {sleep} from "./helpers/sleep.js"; // adjust the import path as needed
 
 test("createNode should initialize with a value", (t) => {
     const node = createNode(10);

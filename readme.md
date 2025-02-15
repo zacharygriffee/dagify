@@ -47,11 +47,12 @@ Create nodes using `createNode()`. A ReactiveNode supports both stateful (manual
 **Key Methods:**
 
 - **`set(value)`**  
-  Sets a new value (for stateful nodes).
+  Sets a new value (for stateful nodes).  
+  **Important:** `set()` now returns a promise (using `setTimeout(resolve, 0)`) that resolves on the next tick. This is intended as a convenience so that you may optionally await state propagation, especially in tests.
 
 - **`update(fn)`**  
   Updates the node’s value. For computed nodes, this triggers recomputation.  
-  For stateful nodes, `update()` now **forces a re-emission** of the current value by default—even if that value is deep‑equal to the previous one. This makes it ideal for triggering refreshes of function dependencies that are meant to reflect side effects or asynchronous results.
+  For stateful nodes, `update()` forces a re-emission of the current value by default—even if that value is deep‑equal to the previous one. This is useful for triggering refreshes of function dependencies that have side effects or resolve asynchronously.
 
   For example:
 
@@ -140,16 +141,14 @@ Create nodes using `createNode()`. A ReactiveNode supports both stateful (manual
 
 #### Update Behavior for Stateful Nodes
 
-Stateful nodes (created with non-function values) use `update()` as a distinct API method that **forces a re-emission** by default. This means that even if the new value is deep‑equal to the old value, subscribers are notified. This behavior contrasts with `set()`/`next()`, which only emit when the new value is different.
+Stateful nodes (created with non-function values) use `update()` as a distinct API method that forces a re-emission by default. This means that even if the new value is deep‑equal to the old value, subscribers are notified. This behavior contrasts with `set()`/`next()`, which only emit when the new value is different.
 
 #### Function and Async Function Dependencies
 
-When you pass a function (or async function) as a dependency to `createNode()`, it is automatically wrapped as a computed node with no dependencies:
-
-This wrapping ensures that:
+When you pass a function (or async function) as a dependency to `createNode()`, it is automatically wrapped as a computed node with no dependencies. This ensures that:
 - **Synchronous functions** are re-evaluated every time the parent node updates.
 - **Async functions** (e.g. `async () => 3`) are treated as computed nodes that resolve asynchronously; their value is incorporated once the promise resolves.
-- To force a refresh of a dependency that has side effects, simply call `update()` on the parent node. The wrapped function dependency will re-run and the latest value will be pulled into the computation.
+- To force a refresh of a dependency with side effects, simply call `update()` on the parent node. The wrapped function dependency will re-run and pull in the latest value.
 
 #### Shallow Reactive Nodes
 
@@ -206,18 +205,27 @@ The `nodeFactory` function provides a convenient, lazy mechanism to create and m
 - **Lazily creates nodes:**  
   When a property is accessed on the factory, it calls `createNode(value, deps)` to create a new node and caches it.
   - For computed nodes (when `value` is a function), the supplied dependencies (`deps`) are applied.
-  - For non-computed nodes (when `value` is not a function), dependencies are ignored.
-
+  - For stateful nodes (when `value` is not a function), dependencies are ignored. Instead, the second argument is interpreted as an optional activator function that is invoked when a node is created.
 - **Supports iteration:**  
   The proxy implements the iterator protocol, yielding sequentially created nodes (up to a maximum specified by the `max` parameter).
-  > **Note:** In indexed mode, once the maximum number of nodes is reached (for example, using an array destructuring like:
+  > **Note:** In indexed mode, once the maximum number of nodes is reached (e.g., using an array destructuring like:
   > ```js
   > const [...nodes] = nodeFactory("hello", 1000);
   > ```
   > Dagify simply stops creating new nodes rather than throwing an error.
-
 - **Provides a clear method:**  
   The factory exposes a `clear()` method that deletes all cached nodes. For each deleted node, if it has a `complete()` method, that method is invoked before removal.
+
+**Parameter Details:**
+
+- For computed nodes:
+  - The first argument is a function.
+  - The second argument is treated as an array (or single dependency) to be passed to node creation.
+- For stateful nodes:
+  - The first argument is any non-function value.
+  - The second argument is treated as an optional activator function.  
+    If the activator is not supplied, a default identity function is used.
+- If the second argument is a number, it is interpreted as the maximum number of nodes (`max`). If `max` is not supplied, it defaults to 1000.
 
 **Example Usage:**
 
@@ -232,8 +240,10 @@ const computedFactory = nodeFactory(
 const computedNode = computedFactory.someKey;
 console.log("Computed node value:", computedNode.value);
 
-// For non-computed (static) nodes, dependencies are ignored:
-const staticFactory = nodeFactory(42);
+// For stateful (static) nodes:
+const staticFactory = nodeFactory(42, (id, node) => {
+  console.log(`Node activated: ${id}`, node);
+}, 100);
 const staticNode = staticFactory.someKey;
 console.log("Static node value:", staticNode.value);
 
@@ -253,13 +263,10 @@ Dagify exports several helper functions that enhance your development experience
 
 - **`setIdGenerator(fn)`**  
   Customize the format of node identifiers.
-
 - **`fromObservable(observable)`**  
   Converts an RxJS Observable into a reactive node.
-
 - **`batch(fn)`**  
   Executes multiple updates in batch mode so that subscribers receive only the final value.
-
 - **`takeUntilCompleted()`**  
   A custom RxJS operator that completes a stream when a notifier (e.g., a node) completes.
 
@@ -274,7 +281,8 @@ import { createNode } from "dagify";
 
 const count = createNode(1);
 count.subscribe(val => console.log("Count:", val));
-count.set(5); // Updates count to 5.
+count.set(5) // Updates count to 5. Note that set() returns a promise.
+  .then(() => console.log("State updated."));
 ```
 
 #### Computed Node (Positional or Named Dependencies)
@@ -434,21 +442,9 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Recent Commit
 
-**Commit:** *Refine computed node dependency API and update nodeFactory behavior; add createShallowNode documentation*
+*feat(nodeFactory, ReactiveNode#set): add optional activator to nodeFactory and update set() to return a promise*
 
-- Removed references to multi-argument dependencies and flattening arrays in computed nodes.
-- Updated nodeFactory documentation to reflect that it stops creating new nodes once the size limit is reached instead of throwing an error.
-- Added documentation for `createShallowNode` as a public API for creating shallow reactive nodes.
-```
-
----
-
-**Commit Message:**
-
-```
-docs: update README for computed nodes, nodeFactory, and add createShallowNode
-
-- Remove mentions of unsupported multi-argument and flattened array dependencies.
-- Update nodeFactory docs to note that it stops creating nodes once the maximum is reached.
-- Add a new section documenting createShallowNode and its usage.
+- Updated `nodeFactory` to support an optional activator function for stateful nodes and infer max when a number is provided.
+- Documented the new lazy node creation mechanism and activator behavior.
+- Modified `ReactiveNode#set` to return a promise (using `setTimeout(resolve, 0)`) for optional awaiting of state propagation.
 ```
