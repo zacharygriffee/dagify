@@ -1,6 +1,5 @@
 import {solo, test} from "brittle";
 import {createGraph, createNode} from "../index.js";
-import b4a from "b4a";
 
 test("graph basic test", async t => {
     const graph = createGraph({keyEncoding: "json"});

@@ -840,4 +840,27 @@ test('Named mode: add and remove dependency (using key/value and node reference)
     computed.removeDependency(b)
     await sleep(0)
     t.is(computed.value, 10, 'After removing dependency with object { b: true }, computed value equals 10')
+});
+
+test("single dep", async t => {
+    const x = createNode({x: 2});
+    const y = createNode(({x}) => x + 2, x);
+    t.is(y.value, 4);
 })
+
+test("single dep nested", async t => {
+    const x = createNode({x: 2});
+    const z = createNode(x);
+    const y = createNode((x) => x.value.x + 2, z);
+    t.is(y.value, 4);
+})
+
+test("Check equality of node", async t => {
+    const x = createNode(1);
+    const c = createNode(x);
+    const y = createNode(r => r, () => c.value === x);
+    t.ok(y.value);
+    c.set(y);
+    await sleep();
+    t.absent(y.value);
+});

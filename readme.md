@@ -7,6 +7,7 @@ Dagify is a lightweight functional-reactive programming (FRP) library for buildi
 > - Use `createGraph()` to create a **ReactiveGraph** for structured node management.
 > - Use `createComposite()` to combine multiple nodes into a single reactive composite.
 > - Additional helper functions like `batch()`, `fromObservable()`, `setIdGenerator()`, and `takeUntilCompleted()` enhance your workflow.
+> - Use `createShallowNode()` to create a **ShallowReactiveNode** that only emits on shallow changes.
 
 ## Table of Contents
 
@@ -15,11 +16,14 @@ Dagify is a lightweight functional-reactive programming (FRP) library for buildi
   - [ReactiveNode API](#reactivenode-api)
     - [Update Behavior for Stateful Nodes](#update-behavior-for-stateful-nodes)
     - [Function and Async Function Dependencies](#function-and-async-function-dependencies)
+    - [Shallow Reactive Nodes](#shallow-reactive-nodes)
   - [ReactiveGraph API](#reactivegraph-api)
   - [Composite Nodes](#composite-nodes)
+  - [Node Factory API](#node-factory-api)
   - [Helper Functions](#helper-functions)
 - [Usage Examples](#usage-examples)
   - [Creating Stateful and Computed Nodes](#creating-stateful-and-computed-nodes)
+  - [Creating a Shallow Reactive Node](#creating-a-shallow-reactive-node)
   - [Managing a Reactive Graph](#managing-a-reactive-graph)
   - [Advanced Node Features](#advanced-node-features)
 - [Contributing](#contributing)
@@ -47,7 +51,7 @@ Create nodes using `createNode()`. A ReactiveNode supports both stateful (manual
 
 - **`update(fn)`**  
   Updates the node’s value. For computed nodes, this triggers recomputation.  
-  For stateful nodes, `update()` now **forces a re-emission** of the current value by default—even if that value is deep-equal to the previous one. This makes it ideal for triggering refreshes of function dependencies that are meant to reflect side effects or asynchronous results.
+  For stateful nodes, `update()` now **forces a re-emission** of the current value by default—even if that value is deep‑equal to the previous one. This makes it ideal for triggering refreshes of function dependencies that are meant to reflect side effects or asynchronous results.
 
   For example:
 
@@ -83,26 +87,34 @@ Create nodes using `createNode()`. A ReactiveNode supports both stateful (manual
 - **`addDependency(...args)`** and **`removeDependency(...args)`**  
   Manage dependencies for computed nodes using a unified API.
 
-  - In **positional (array) mode** (when the computed node’s dependency was provided as an array), you may:
+  **Important:**
+
+  - **Computed nodes now only support a single dependency argument.**  
+    You must pass dependencies as either a single array (for positional mode) or an object (for named mode).  
+    For example, the following are **not supported**:
+    ```js
+    // Not supported:
+    createNode((arg1, arg2) => {}, arg1, arg2);
+    createNode((arg1, arg2) => {}, [arg1, arg2]);
+    ```
+
+  - **Positional (array) mode:**
     - **Add dependencies:**
       ```js
       // Single dependency:
       computedNode.addDependency(dep1);
-      // Multiple dependencies:
-      computedNode.addDependency(dep1, dep2);
-      // Or by providing an array:
+      // Multiple dependencies via an array:
       computedNode.addDependency([dep1, dep2]);
       ```
     - **Remove dependencies:**
       ```js
       // Remove a single dependency:
       computedNode.removeDependency(dep1);
-      // Remove multiple dependencies:
-      computedNode.removeDependency(dep1, dep2);
-      // Or by providing an array:
+      // Remove multiple dependencies by passing an array:
       computedNode.removeDependency([dep1, dep2]);
       ```
-  - In **named (object) mode** (when the computed node’s dependency was provided as an object), you may:
+
+  - **Named (object) mode:**
     - **Add dependencies:**
       ```js
       // Add by explicit key:
@@ -134,20 +146,25 @@ Stateful nodes (created with non-function values) use `update()` as a distinct A
 
 When you pass a function (or async function) as a dependency to `createNode()`, it is automatically wrapped as a computed node with no dependencies:
 
-```js
-// In normalizeDependency:
-} else if (typeof dep === 'function') {
-    // Instead of wrapping with from/defer,
-    // wrap the function into a computed node with no dependencies.
-    return createNode(dep, []);
-}
-```
-
 This wrapping ensures that:
 - **Synchronous functions** are re-evaluated every time the parent node updates.
 - **Async functions** (e.g. `async () => 3`) are treated as computed nodes that resolve asynchronously; their value is incorporated once the promise resolves.
-- This design provides more intuitive, implicit reactivity for function dependencies.
 - To force a refresh of a dependency that has side effects, simply call `update()` on the parent node. The wrapped function dependency will re-run and the latest value will be pulled into the computation.
+
+#### Shallow Reactive Nodes
+
+In addition to the standard deep-equality checking, Dagify now offers shallow reactive nodes. Use `createShallowNode()` to create nodes that emit updates only when shallow differences are detected.
+
+```js
+import { createShallowNode } from "dagify";
+
+const shallowNode = createShallowNode({ a: { b: 1 } });
+shallowNode.subscribe(val => console.log("Shallow node:", val));
+
+// Even if a new object with deep-equal values is set,
+// if the top-level reference changes, an update is emitted:
+shallowNode.set({ a: { b: 1 } });
+```
 
 ### ReactiveGraph API
 
@@ -167,53 +184,20 @@ const node2 = createNode(
 
 **Adding Nodes to the Graph:**
 
-Nodes are added to the graph using either the single or batch methods:
+Nodes are added to the graph using either single or batch methods:
 
 - **`addNode(node)` or `addNode(id, node)`**  
   Adds a single node to the graph.
-  - When called with one argument, the node’s internally generated identifier is used.
-  - When called with two arguments, the first argument is treated as a custom identifier and the provided node is associated with that key.
-
-  **Examples:**
-  ```js
-  // Using the node’s generated id:
-  graph.addNode(node1);
-  
-  // Using a custom id:
-  graph.addNode("five", node1);
-  ```
+  - With one argument, the node’s generated identifier is used.
+  - With two arguments, the first is a custom identifier.
 
 - **`addNodes(nodes)`**  
-  Adds multiple nodes to the graph in one call. Each element in the provided array can be one of two formats:
-
-  1. **Node Object:**  
-     Simply supply the node object. The node’s generated id is used.
-     ```js
-     graph.addNodes([node1, node2]);
-     ```
-
-  2. **Tuple Format:**  
-     Supply a two-element array where the first element is a custom identifier and the second element is the node object.
-     ```js
-     graph.addNodes([
-       ["five", node1],
-       ["nine", node2]
-     ]);
-     ```
+  Adds multiple nodes to the graph. Each element can be:
+  1. A node object (using its generated id), or
+  2. A tuple `[customId, node]`.
 
 - **`upsertNode(node)` or `upsertNode(id, node)`**  
-  Retrieves an existing node or adds a new one if it does not exist. This method supports both a full Dagify node object (with an auto-generated id) and a tuple format (custom id plus node).
-
-  **Example:**
-  ```js
-  // Using the node’s generated id:
-  const nodeA = createNode(1);
-  const a = graph.upsertNode(nodeA);
-
-  // Using a custom id:
-  const nodeB = createNode(2);
-  const b = graph.upsertNode("two", nodeB);
-  ```
+  Retrieves an existing node or adds a new one if it does not exist.
 
 ### Node Factory API
 
@@ -221,12 +205,16 @@ The `nodeFactory` function provides a convenient, lazy mechanism to create and m
 
 - **Lazily creates nodes:**  
   When a property is accessed on the factory, it calls `createNode(value, deps)` to create a new node and caches it.
-  - For **computed nodes** (when `value` is a function), the supplied dependencies (`deps`) are applied.
-  - For **non-computed nodes** (when `value` is not a function), dependencies are ignored.
+  - For computed nodes (when `value` is a function), the supplied dependencies (`deps`) are applied.
+  - For non-computed nodes (when `value` is not a function), dependencies are ignored.
 
 - **Supports iteration:**  
   The proxy implements the iterator protocol, yielding sequentially created nodes (up to a maximum specified by the `max` parameter).
-  > **Note:** Exceeding the maximum number of nodes (default is 1000) throws an error.
+  > **Note:** In indexed mode, once the maximum number of nodes is reached (for example, using an array destructuring like:
+  > ```js
+  > const [...nodes] = nodeFactory("hello", 1000);
+  > ```
+  > Dagify simply stops creating new nodes rather than throwing an error.
 
 - **Provides a clear method:**  
   The factory exposes a `clear()` method that deletes all cached nodes. For each deleted node, if it has a `complete()` method, that method is invoked before removal.
@@ -245,126 +233,18 @@ const computedNode = computedFactory.someKey;
 console.log("Computed node value:", computedNode.value);
 
 // For non-computed (static) nodes, dependencies are ignored:
-const staticFactory = nodeFactory(42, [dep1, dep2]);
+const staticFactory = nodeFactory(42);
 const staticNode = staticFactory.someKey;
 console.log("Static node value:", staticNode.value);
 
 // Iterating over nodes:
 for (const node of computedFactory) {
   console.log("Iterated node:", node);
-  break; // Remember to break to avoid infinite iteration
+  break; // Avoid infinite iteration
 }
 
 // Clearing all nodes:
 computedFactory.clear();
-```
-
-**Other Key Methods:**
-
-- **`removeNode(nodeRef)`**  
-  Removes a node and all its connections.
-
-- **`connect(srcRef, tgtRef)`**  
-  Adds an edge from the source node to the target node (with automatic cycle prevention). When connecting computed nodes, Dagify automatically adds the source node as a dependency of the target node. Depending on whether the target’s dependency structure is an array (positional) or an object (named), Dagify uses `addDependency()` or `updateDependencies()` respectively.
-
-- **`disconnect(srcRef, tgtRef)`**  
-  Removes the edge from the source to the target node.
-
-- **`topologicalSort()`**  
-  Returns an array of node keys sorted in topological order.
-
-- **`update()`**  
-  Recomputes all computed nodes in topological order.
-
-- **`updateAsync()`**  
-  Asynchronously updates all computed nodes.
-
-- **`getNode(ref | array)`**  
-  Retrieves a node (or an array of nodes) by reference.
-
-- **`getNodes()`**  
-  Returns an array of all nodes in the graph.
-
-- **`getEdges()`**  
-  Returns an array of all edges in the graph.
-
-- **`findNode(predicate)`**  
-  Scans all nodes and returns the first node that satisfies the provided predicate function.
-
-- **`getImmediatePredecessors(ref)`**  
-  Returns the direct dependency nodes of the given node.
-
-- **`getPredecessors(ref, { transitive: true })`**  
-  Returns all (transitive) predecessor nodes.
-
-- **`getImmediateSuccessors(ref)`**  
-  Returns the nodes that directly depend on the given node.
-
-- **`getSuccessors(ref, { transitive: true })`**  
-  Returns all (transitive) dependent nodes.
-
-- **`getSources()`** and **`getSinks()`**  
-  Retrieve nodes with no incoming or outgoing edges, respectively.
-
-- **`toString()`**  
-  Returns a human-readable string representation of the graph.
-
-- **`findPath(srcRef, tgtRef)`**  
-  Finds a dependency path from the source to the target node.
-
-- **`getInDegree(ref)`** / **`getOutDegree(ref)`**  
-  Return the number of incoming or outgoing edges for a given node.
-
-- **`hasNode(ref)`** and **`hasEdge(srcRef, tgtRef)`**  
-  Check for the existence of nodes and edges.
-
-- **`clear()`**  
-  Removes all nodes and edges from the graph.
-
-- **`getConnectedComponent(ref)`**  
-  Retrieves all nodes in the same connected component as the given node.
-
----
-
-### Composite Nodes
-
-Use `createComposite()` to aggregate multiple reactive nodes into a single composite node that emits a combined value. Composites can be created in two modes:
-
-- **Array Mode:** Combine an array of nodes.
-- **Object Mode:** Combine an object of nodes.
-
-Example (Array Mode):
-
-```js
-import { createNode, createComposite } from "dagify";
-
-const node1 = createNode(1);
-const node2 = createNode(2);
-const composite = createComposite([node1, node2]);
-
-composite.subscribe(values => {
-  console.log("Composite (array mode):", values);
-});
-
-node1.set(10); // Logs: [10, 2]
-node2.set(20); // Logs: [10, 20]
-```
-
-Example (Object Mode):
-
-```js
-import { createNode, createComposite } from "dagify";
-
-const nodeA = createNode(1);
-const nodeB = createNode(2);
-const composite = createComposite({ a: nodeA, b: nodeB });
-
-composite.subscribe(values => {
-  console.log("Composite (object mode):", values);
-});
-
-nodeA.set(10); // Logs: { a: 10, b: 2 }
-nodeB.set(20); // Logs: { a: 10, b: 20 }
 ```
 
 ### Helper Functions
@@ -397,34 +277,9 @@ count.subscribe(val => console.log("Count:", val));
 count.set(5); // Updates count to 5.
 ```
 
-#### Computed Node (Positional Dependencies)
+#### Computed Node (Positional or Named Dependencies)
 
-```js
-import { createNode } from "dagify";
-
-const count = createNode(1);
-
-// Using an array dependency. The computed function here is declared with a rest parameter,
-// so the dependency array is spread into individual arguments.
-const double = createNode(
-  (...values) => values[0] * 2,
-  [count]
-);
-
-double.subscribe(val => console.log("Double:", val));
-count.set(3); // Automatically logs "Double: 6"
-```
-
-Alternatively, if you prefer the computed function to receive the dependency array as-is, declare it with one parameter:
-
-```js
-const doubleArray = createNode(
-  (values) => values[0] * 2,
-  [count]
-);
-```
-
-#### Computed Node (Named Dependencies)
+For computed nodes, dependencies must be provided as a single array (for positional mode) or an object (for named mode). For example:
 
 ```js
 import { createNode } from "dagify";
@@ -458,7 +313,7 @@ count.set(4); // Eventually logs "Async double: 8"
 
 #### Function/Async Function Dependencies with Side Effects
 
-When you pass a function (or async function) as a dependency, it is automatically wrapped as a computed node with no dependencies. This ensures that on every parent update, the function is re-evaluated. For example:
+When you pass a function (or async function) as a dependency, it is automatically wrapped as a computed node with no dependencies. This ensures that on every parent update, the function is re-evaluated.
 
 ```js
 // A synchronous function dependency:
@@ -473,7 +328,20 @@ const asyncGetter = async () => {
 const y = createNode(([v]) => v * 2, [asyncGetter]);
 ```
 
-If your function has side effects, calling `update()` on the parent node will force re-computation of these dependencies, ensuring that the latest value (or side effect) is pulled in.
+### Creating a Shallow Reactive Node
+
+Use `createShallowNode()` to create a node that only emits when shallow differences are detected:
+
+```js
+import { createShallowNode } from "dagify";
+
+const shallowNode = createShallowNode({ a: { b: 1 } });
+shallowNode.subscribe(val => console.log("Shallow node:", val));
+
+// Even if a new object with deep-equal values is set,
+// if the top-level reference changes, an update is emitted:
+shallowNode.set({ a: { b: 1 } });
+```
 
 ### Managing a Reactive Graph
 
@@ -498,8 +366,8 @@ graph.connect(b, sum);
 
 sum.subscribe(val => console.log("Sum:", val));
 
-a.set(3); // Logs "Sum:" with the updated computed value.
-b.set(4); // Logs "Sum:" with the updated computed value.
+a.set(3); // Logs updated computed value.
+b.set(4); // Logs updated computed value.
 ```
 
 ### Advanced Node Features
@@ -566,9 +434,21 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Recent Commit
 
-**Commit:** *Refactor update behavior and function/async function dependency handling*
+**Commit:** *Refine computed node dependency API and update nodeFactory behavior; add createShallowNode documentation*
 
-- The `update()` method for stateful nodes now forces a re-emission by default (bypassing deep equality).
-- Function (and async function) dependencies are automatically wrapped as computed nodes with no dependencies, ensuring they re-evaluate on each parent update.
-- Adjusted dependency removal logic to correctly identify and remove function dependencies by comparing the underlying function.
-- Added documentation and examples to clarify the behavior for function/async function dependencies.
+- Removed references to multi-argument dependencies and flattening arrays in computed nodes.
+- Updated nodeFactory documentation to reflect that it stops creating new nodes once the size limit is reached instead of throwing an error.
+- Added documentation for `createShallowNode` as a public API for creating shallow reactive nodes.
+```
+
+---
+
+**Commit Message:**
+
+```
+docs: update README for computed nodes, nodeFactory, and add createShallowNode
+
+- Remove mentions of unsupported multi-argument and flattened array dependencies.
+- Update nodeFactory docs to note that it stops creating nodes once the maximum is reached.
+- Add a new section documenting createShallowNode and its usage.
+```

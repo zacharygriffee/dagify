@@ -3,6 +3,7 @@ import {fromObservable} from "./lib/util/fromObservable.js";
 import {ReactiveGraph} from "./lib/ReactiveGraph.js";
 import {Composite} from "./lib/Composite.js";
 import {nodeFactory} from "./lib/nodeFactory.js";
+import {ShallowReactiveNode} from "./lib/ShallowReactiveNode.js";
 
 /**
  * Creates a new reactive node.
@@ -13,6 +14,25 @@ import {nodeFactory} from "./lib/nodeFactory.js";
  */
 const createNode = (fnOrValue, dependencies = []) => new ReactiveNode(fnOrValue, dependencies);
 
+
+/**
+ * Creates a new shallow reactive node that only emits updates
+ * when shallow changes to its value are detected.
+ *
+ * This function wraps the instantiation of a ShallowReactiveNode,
+ * which uses shallow equality checks (instead of deep equality) to
+ * determine if the value has changed.
+ *
+ * @param {Function|*} fnOrValue - A function to compute the node's value or a static value.
+ *                                  If a function is provided, it will be used to compute
+ *                                  the node's value based on its dependencies.
+ * @param {Array|*} [dependencies=[]] - An array (or a single dependency) of dependencies.
+ *                                      Dependencies can be other nodes, observables,
+ *                                      or values that the computed function depends on.
+ *
+ * @returns {ShallowReactiveNode} A new instance of ShallowReactiveNode.
+ */
+const createShallowNode = (fnOrValue, dependencies = []) => new ShallowReactiveNode(fnOrValue, dependencies);
 
 /**
  * Creates a new reactive graph.
@@ -44,4 +64,4 @@ const batch = (fn) => ReactiveNode.batch(fn);
 // const proxy = (node) => ReactiveNode.proxify(node);
 export { takeUntilCompleted } from "./lib/util/takeUntilCompleted.js";
 export * from "./lib/nodes/index.js";
-export { createNode, createGraph, createComposite, batch, fromObservable, setIdGenerator, nodeFactory};
+export { createNode, createShallowNode, createGraph, createComposite, batch, fromObservable, setIdGenerator, nodeFactory};
