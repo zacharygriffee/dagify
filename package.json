@@ -1,12 +1,16 @@
 {
   "name": "dagify",
-  "version": "1.1.20",
+  "version": "1.2.0",
   "description": "A lightweight DAG-based reactive state management library.",
   "main": "index.js",
   "type": "module",
   "exports": {
     ".": "./index.js",
-    "./nodes": "./lib/nodes/index.js"
+    "./nodes": "./lib/nodes/index.js",
+    "./node": "./lib/node/index.js",
+    "./graph": "./lib/graph/index.js",
+    "./composite": "./lib/composite/index.js",
+    "./operators": "./lib/operators/index.js"
   },
   "scripts": {
     "test": "brittle tests/**/*.test.js",
@@ -34,6 +38,7 @@
   "dependencies": {
     "b4a": "^1.6.7",
     "compact-encoding": "^2.16.0",
-    "tiny-buffer-map": "^1.1.1"
+    "tiny-buffer-map": "^1.1.1",
+    "z32": "^1.1.0"
   }
 }

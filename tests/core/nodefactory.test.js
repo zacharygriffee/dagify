@@ -1,5 +1,5 @@
 import { test, solo } from 'brittle'
-import { nodeFactory } from '../../lib/nodeFactory.js'
+import { nodeFactory } from '../../lib/node/nodeFactory.js'
 import { createNode } from '../../index.js'
 import {sleep} from "../helpers/sleep.js"; // adjust the import path as needed
 

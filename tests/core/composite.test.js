@@ -1,6 +1,6 @@
 import { solo, test } from "brittle";
 import { createNode } from "../../index.js";
-import { Composite } from "../../lib/Composite.js";
+import { Composite } from "../../lib/composite/Composite.js";
 import { interval, take } from "rxjs";
 
 // Helper function for async delays

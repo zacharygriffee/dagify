@@ -2,7 +2,7 @@ import {solo, test} from "brittle";
 import {batch, createComposite, createNode} from "../../index.js";
 import {concat, delay, firstValueFrom, from, interval, map, of, startWith, take, tap, toArray, zip, zipAll} from "rxjs";
 import {takeUntilCompleted} from "../../lib/util/takeUntilCompleted.js";
-import {nodeFactory} from "../../lib/nodeFactory.js";
+import {nodeFactory} from "../../lib/node/nodeFactory.js";
 import {sleep} from "../helpers/sleep.js"; // adjust the import path as needed
 
 test("createNode should initialize with a value", (t) => {
