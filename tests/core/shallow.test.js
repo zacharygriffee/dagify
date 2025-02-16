@@ -1,6 +1,6 @@
 import {test} from "brittle";
-import {ShallowReactiveNode} from "../lib/ShallowReactiveNode.js";
-import {sleep} from "./helpers/sleep.js"; // adjust the import path as needed
+import {ShallowReactiveNode} from "../../lib/ShallowReactiveNode.js";
+import {sleep} from "../helpers/sleep.js"; // adjust the import path as needed
 
 test("ShallowReactiveNode should initialize with a value", (t) => {
     const node = new ShallowReactiveNode(10);

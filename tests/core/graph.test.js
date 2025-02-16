@@ -1,6 +1,6 @@
 import {solo, test} from "brittle";
-import {createGraph, createNode} from "../index.js";
-import {ReactiveGraph} from "../lib/ReactiveGraph.js";
+import {createGraph, createNode} from "../../index.js";
+import {ReactiveGraph} from "../../lib/ReactiveGraph.js";
 
 test("graph basic test", async t => {
     const graph = createGraph({keyEncoding: "json"});

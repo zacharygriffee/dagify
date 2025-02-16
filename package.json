@@ -1,6 +1,6 @@
 {
   "name": "dagify",
-  "version": "1.1.19",
+  "version": "1.1.20",
   "description": "A lightweight DAG-based reactive state management library.",
   "main": "index.js",
   "type": "module",
@@ -9,11 +9,12 @@
     "./nodes": "./lib/nodes/index.js"
   },
   "scripts": {
-    "test": "brittle tests/*.test.js",
-    "bare:test": "bare tests/graph.test.js && bare tests/node.test.js && bare tests/composite.test.js && bare tests/shallow.test.js && bare tests/nodefactory.test.js"
+    "test": "brittle tests/**/*.test.js",
+    "bare:test": "bare tests/graph.test.js && bare tests/node.test.js && bare tests/core/composite.test.js && bare tests/shallow.test.js && bare tests/nodefactory.test.js"
   },
   "devDependencies": {
     "brittle": "^3.10.0",
+    "eventemitter3": "^5.0.1",
     "operator-pipeline": "^1.0.6",
     "rxjs": "^7.8.1"
   },
