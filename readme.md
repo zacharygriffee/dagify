@@ -165,6 +165,87 @@ Create a graph using `createGraph()`. The **ReactiveGraph** organizes nodes, pre
   - **`toString()`**  
     Returns a human‑readable string representation of the graph (using z32‑encoded ids).
 
+
+### Execution Node API
+
+**ExecutionNodes** extend the ReactiveNode abstraction to allow explicit control over when values are emitted. Instead of automatically propagating updates when dependencies change or when subscribers are added, an ExecutionNode only emits its value when it is explicitly triggered. This behavior applies to both computed nodes (which derive their state from dependencies) and stateful nodes (which hold a direct value).
+
+#### Creating an ExecutionNode
+
+You can create an ExecutionNode using the `createExecutionNode()` factory function. For computed nodes, you supply a function and (optionally) dependencies; for stateful nodes, you supply a value. In either case, the node will only emit its state when `triggerExecution()` is called (or when an external execution trigger is provided).
+
+```js
+/**
+ * Creates a new ExecutionNode instance.
+ *
+ * This factory function instantiates an ExecutionNode that only emits values when explicitly triggered.
+ * For computed nodes, the node's value is derived from the provided function and dependencies,
+ * and will only recompute and emit upon a manual trigger.
+ * For stateful nodes, the provided value is used and will only be emitted when triggered.
+ *
+ * @param {Function|*} fnOrValue - For computed nodes, a function that derives the node's value from its dependencies;
+ *                                 for stateful nodes, the initial value.
+ * @param {Array|Object} [dependencies=[]] - Optional dependencies for computed nodes. Can be an array for positional
+ *                                           dependencies or an object for named dependencies. Ignored for stateful nodes.
+ * @param {Subject} [executionStream] - Optional RxJS Subject that controls triggering of the node. If not provided,
+ *                                      a new Subject is created internally.
+ * @returns {ExecutionNode} A new ExecutionNode instance.
+ */
+const createExecutionNode = (fnOrValue, dependencies = [], executionStream) =>
+  new ExecutionNode(fnOrValue, dependencies, executionStream);
+```
+
+#### Example Usage
+
+**Stateful ExecutionNode:**
+
+```js
+import { createExecutionNode } from "dagify";
+
+const statefulNode = createExecutionNode(42);
+statefulNode.subscribe(val => console.log("Stateful value:", val));
+
+// No emission occurs on subscription. When triggered, the node emits its current value.
+statefulNode.triggerExecution(); // Logs: "Stateful value: 42"
+```
+
+**Computed ExecutionNode:**
+
+```js
+import { createNode, createExecutionNode } from "dagify";
+
+// Create base stateful nodes.
+const a = createNode(10);
+const b = createNode(20);
+
+// Create a computed node that sums its dependencies.
+const sumNode = createExecutionNode(
+  ({ a, b }) => a + b,
+  { a, b }
+);
+
+// No emission occurs on subscription.
+sumNode.subscribe(val => console.log("Computed sum:", val));
+
+// The computed node's internal value is computed upon creation (sum equals 30), but it won't emit until triggered.
+console.log("Internal computed value:", sumNode.value); // 30
+
+// Triggering forces recomputation and emission.
+sumNode.triggerExecution(); // Logs: "Computed sum: 30"
+```
+
+#### Key Points
+
+- **Explicit Triggering:**  
+  ExecutionNodes do not automatically emit their value when dependencies change or when a subscriber is added. They emit only when `triggerExecution()` is called (or via an external execution stream).
+
+- **Push-Based Updates:**  
+  This model allows you to control propagation of state explicitly, which can be useful when you want to optimize update timing, rate limit emissions, or coordinate multiple reactive flows.
+
+- **Uniform API:**  
+  The same API works for both computed and stateful nodes, letting you use execution nodes as a fundamental building block in your reactive graphs.
+
+
 ### Composite Nodes
 
 Composite nodes are created using `createComposite()` and allow you to combine multiple nodes into a single reactive unit. The composite updates when any of its constituent nodes change.
