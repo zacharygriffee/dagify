@@ -1,8 +1,8 @@
-import {solo, test} from "brittle";
+import {test} from "brittle";
 import {batch, createComposite, createNode} from "../../index.js";
-import {concat, delay, firstValueFrom, from, interval, map, of, startWith, take, tap, toArray, zip, zipAll} from "rxjs";
+import {concat, delay, firstValueFrom, interval, map, of, startWith, take, tap, toArray} from "rxjs";
 import {takeUntilCompleted} from "../../lib/util/takeUntilCompleted.js";
-import {nodeFactory} from "../../lib/node/nodeFactory.js";
+import {nodeFactory} from "../../lib/node/index.js";
 import {sleep} from "../helpers/sleep.js"; // adjust the import path as needed
 
 test("createNode should initialize with a value", (t) => {
@@ -71,9 +71,6 @@ test("computedNode should update when dependencies change", (t) => {
 
     a.set(7); // Triggers recomputation
 });
-
-
-
 
 test("computedNode should not allow manual set()", (t) => {
     const a = createNode(2);
