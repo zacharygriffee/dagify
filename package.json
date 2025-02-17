@@ -1,6 +1,6 @@
 {
   "name": "dagify",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "A lightweight DAG-based reactive state management library.",
   "main": "index.js",
   "type": "module",
@@ -14,7 +14,7 @@
   },
   "scripts": {
     "test": "brittle tests/**/*.test.js",
-    "bare:test": "bare tests/core/graph.test.js && bare tests/core/node.test.js && bare tests/core/composite.test.js && bare tests/core/shallow.test.js && bare tests/core/nodefactory.test.js"
+    "bare:test": "bare tests/core/graph.test.js && bare tests/core/node.test.js && bare tests/core/composite.test.js && bare tests/core/nodefactory.test.js"
   },
   "devDependencies": {
     "brittle": "^3.10.0",
@@ -38,6 +38,7 @@
   "dependencies": {
     "b4a": "^1.6.7",
     "compact-encoding": "^2.16.0",
+    "hypercore-crypto": "^3.5.0",
     "tiny-buffer-map": "^1.1.1",
     "z32": "^1.1.0"
   }

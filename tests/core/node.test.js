@@ -1,9 +1,19 @@
 import {test} from "brittle";
-import {batch, createComposite, createNode} from "../../index.js";
+import {createComposite} from "../../lib/composite/index.js";
+import {batch, createNode, nodeFactory} from "../../lib/node/index.js";
 import {concat, delay, firstValueFrom, interval, map, of, startWith, take, tap, toArray} from "rxjs";
 import {takeUntilCompleted} from "../../lib/util/takeUntilCompleted.js";
-import {nodeFactory} from "../../lib/node/index.js";
-import {sleep} from "../helpers/sleep.js"; // adjust the import path as needed
+import {sleep} from "../helpers/sleep.js";
+import b4a from "b4a"; // adjust the import path as needed
+
+test("each node creates a 32 byte unique identifier", t => {
+   const node1 = createNode();
+   const node2 = createNode();
+
+   t.is(node1.key.byteLength, 32);
+   t.is(node2.key.byteLength, 32);
+   t.absent(b4a.equals(node1.key, node2.key))
+});
 
 test("createNode should initialize with a value", (t) => {
     const node = createNode(10);

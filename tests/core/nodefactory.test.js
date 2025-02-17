@@ -1,7 +1,6 @@
 import { test, solo } from 'brittle'
-import { nodeFactory } from '../../lib/node/nodeFactory.js'
 import { createNode } from '../../index.js'
-import {sleep} from "../helpers/sleep.js"; // adjust the import path as needed
+import { nodeFactory } from '../../lib/node/index.js'
 
 // --- Computed Mode Tests ---
 test('nodeFactory computed mode creates computed nodes correctly', async t => {

@@ -2,11 +2,24 @@ import { solo, test } from "brittle";
 import { createGraph, createNode } from "../../index.js";
 import z32 from "z32";
 
+test("graph uses node keys correctly", async (t) => {
+    const graph = createGraph();
+    const rootNode = createNode(10);
+    const childNode = createNode(([x]) => x + 5);
+
+    graph.addNodes([rootNode, childNode]);
+    graph.connect(rootNode, [childNode]);
+
+    t.is(childNode.value, 15);
+    await rootNode.set(15)
+    t.is(childNode.value, 20);
+});
+
 // ─────────────────────────────────────────────
 // 1. Basic Graph Test
 // ─────────────────────────────────────────────
 test("graph basic test", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode(1);
     const b = createNode(2);
     const c = createNode(values => values.map(x => x + 10));
@@ -31,7 +44,7 @@ test("graph basic test", async t => {
 // 2. Cycle Detection Test
 // ─────────────────────────────────────────────
 test("cycle detection should throw error", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode(1);
     const b = createNode(2);
     const c = createNode(values => values.reduce((acc, val) => acc + val, 0));
@@ -51,7 +64,7 @@ test("cycle detection should throw error", async t => {
 // 3. Disconnect Test
 // ─────────────────────────────────────────────
 test("disconnecting a node updates computed value", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode(5);
     const b = createNode(6);
     const c = createNode(values => values.map(x => x + 10));
@@ -74,7 +87,7 @@ test("disconnecting a node updates computed value", async t => {
 // 4. Remove Node Test
 // ─────────────────────────────────────────────
 test("removing a node updates dependencies", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode(5);
     const b = createNode(7);
     const c = createNode(values => values.reduce((acc, x) => acc + x, 0));
@@ -96,7 +109,7 @@ test("removing a node updates dependencies", async t => {
 // 5. Topological Sort Test
 // ─────────────────────────────────────────────
 test("topological sort returns a valid ordering", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode(1);
     const b = createNode(2);
     const c = createNode(values => values.reduce((acc, x) => acc + x, 0));
@@ -123,7 +136,7 @@ test("topological sort returns a valid ordering", async t => {
 // 6. Update Propagation Test
 // ─────────────────────────────────────────────
 test("update propagates changes through the graph", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode(3);
     const b = createNode(([n]) => n * 2);
     const c = createNode(values => values.reduce((acc, x) => acc + x, 0));
@@ -149,7 +162,7 @@ test("update propagates changes through the graph", async t => {
 // 7. getNode Overload Tests
 // ─────────────────────────────────────────────
 test("getNode overload returns the correct node(s)", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode(1);
     const b = createNode(2);
 
@@ -161,7 +174,7 @@ test("getNode overload returns the correct node(s)", async t => {
 });
 
 test("getNode should throw for non-existent nodes", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     t.exception(() => graph.getNode("non-existent"), "Retrieving a non-existent node should throw an error");
 });
 
@@ -169,7 +182,7 @@ test("getNode should throw for non-existent nodes", async t => {
 // 8. Predecessors & Successors Tests
 // ─────────────────────────────────────────────
 test("immediate and transitive predecessors and successors", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
 
     const A = createNode("A");
     const B = createNode("B");
@@ -209,7 +222,7 @@ test("immediate and transitive predecessors and successors", async t => {
 // 9. Sources and Sinks Tests
 // ─────────────────────────────────────────────
 test("retrieving sources and sinks", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
 
     const a = createNode("a");
     const b = createNode("b");
@@ -238,7 +251,7 @@ test("retrieving sources and sinks", async t => {
 // 10. updateAsync Test
 // ─────────────────────────────────────────────
 test("updateAsync updates nodes asynchronously", async t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
 
     const a = createNode(3);
     const b = createNode(([val]) => val * 2);
@@ -260,7 +273,7 @@ test("updateAsync updates nodes asynchronously", async t => {
 // 11. toString Test
 // ─────────────────────────────────────────────
 test("toString returns correct string representation", t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode("a");
     const b = createNode("b");
     const c = createNode("c");
@@ -283,7 +296,7 @@ test("toString returns correct string representation", t => {
 // 12. findPath Test
 // ─────────────────────────────────────────────
 test("findPath returns a valid path between nodes", t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode("a");
     const b = createNode("b");
     const c = createNode("c");
@@ -313,7 +326,7 @@ test("findPath returns a valid path between nodes", t => {
 // 13. Graph Introspection Tests (getInDegree, getOutDegree, hasNode, hasEdge)
 // ─────────────────────────────────────────────
 test("Graph introspection functions work correctly", t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode("a");
     const b = createNode("b");
     const c = createNode("c");
@@ -342,7 +355,7 @@ test("Graph introspection functions work correctly", t => {
 // 14. clear Test
 // ─────────────────────────────────────────────
 test("clear empties the graph", t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode("a");
     const b = createNode("b");
 
@@ -360,7 +373,7 @@ test("clear empties the graph", t => {
 // 15. getConnectedComponent Test
 // ─────────────────────────────────────────────
 test("getConnectedComponent returns correct connected components", t => {
-    const graph = createGraph({ keyEncoding: "json" });
+    const graph = createGraph();
     const a = createNode("a");
     const b = createNode("b");
     const c = createNode("c");
