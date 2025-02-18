@@ -1,6 +1,6 @@
 {
   "name": "dagify",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "A lightweight DAG-based reactive state management library.",
   "main": "index.js",
   "type": "module",
@@ -10,14 +10,16 @@
     "./node": "./lib/node/index.js",
     "./graph": "./lib/graph/index.js",
     "./composite": "./lib/composite/index.js",
-    "./operators": "./lib/operators/index.js"
+    "./operators": "./lib/operators/index.js",
+    "./network": "./lib/network/index.js"
   },
   "scripts": {
     "test": "brittle tests/**/*.test.js",
-    "bare:test": "bare tests/core/graph.test.js && bare tests/core/node.test.js && bare tests/core/composite.test.js && bare tests/core/nodefactory.test.js"
+    "bare:test": "bare tests/core/graph.test.js && bare tests/core/node.test.js && bare tests/core/composite.test.js && bare tests/core/nodefactory.test.js && bare tests/network/syncnode.js"
   },
   "devDependencies": {
     "brittle": "^3.10.0",
+    "duplex-through": "^1.0.2",
     "eventemitter3": "^5.0.1",
     "operator-pipeline": "^1.0.6",
     "rxjs": "^7.8.1"
@@ -39,6 +41,8 @@
     "b4a": "^1.6.7",
     "compact-encoding": "^2.16.0",
     "hypercore-crypto": "^3.5.0",
+    "protomux": "^3.10.1",
+    "protomux-rpc": "^1.7.0",
     "tiny-buffer-map": "^1.1.1",
     "z32": "^1.1.0"
   }

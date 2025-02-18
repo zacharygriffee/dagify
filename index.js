@@ -3,4 +3,7 @@ export * from "./lib/graph/index.js";
 export * from "./lib/composite/index.js";
 export * from "./lib/operators/index.js";
 export * from "./lib/nodes/index.js";
-
+export * from "./lib/network/index.js";
+export {handshakeEncoding} from "./lib/network/handshakeEncoding.js";
+export {syncNode} from "./lib/network/syncNode.js";
+export {PROTOCOL} from "./lib/network/syncNode.js";
