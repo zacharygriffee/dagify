@@ -129,7 +129,7 @@ test("sink mode: local receives updates only", async (t) => {
     t.is(remoteNode.value, "changed");
 });
 
-solo("share a composite", async (t) => {
+test("share a composite", async (t) => {
     const [s1, s2] = duplexThrough();
     const helloNode = createNode("hello");
     const worldNode = createNode("world");
