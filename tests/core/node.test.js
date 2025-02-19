@@ -1,4 +1,4 @@
-import {test, skip} from "brittle";
+import {test, skip, solo} from "brittle";
 import {createComposite} from "../../lib/composite/index.js";
 import {batch, createNode, nodeFactory} from "../../lib/node/index.js";
 import {concat, delay, firstValueFrom, interval, map, of, startWith, take, tap, toArray} from "rxjs";
@@ -869,4 +869,33 @@ test("Check equality of node", async t => {
     c.set(y);
     await sleep();
     t.absent(y.value);
+});
+
+test("error persists even after dependency update", async t => {
+    t.comment(`
+    Throwing in a node is a 'critical' issue, and will cause the node to not operate
+    ever again. This is the way observable contract works. Designing a node to handle errors gracefully is up to the developer.
+    If an node errors, dependencies will not know about it they will think it is operating normally.
+    So, instead of throwing in a node, it is recommended to use a try/catch block. And reserve throwing
+    as a truly critical problem.
+    
+    While you can catch errors per node, the node ceases to operate after that.
+    '
+    `);
+    const x = createNode(5);
+    const y = createNode(x => {
+        if (x <= 8) {
+            throw new Error("Thrown");
+        }
+        else return x;
+    }, x);
+    const z = createNode(y => {
+        return y * y;
+    }, y);
+    // Wait a bit so that error has time to propagate.
+    await sleep(10);
+    t.is(z.value, undefined, "Value is undefined due to error");
+
+    await x.set(10);
+    t.is(z.value, undefined, "Node is in error state thus, it cannot recover.");
 });
