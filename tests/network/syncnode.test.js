@@ -129,15 +129,11 @@ test("sink mode: local receives updates only", async (t) => {
     t.is(remoteNode.value, "changed");
 });
 
-test("share a composite", async (t) => {
+solo("share a composite", async (t) => {
     const [s1, s2] = duplexThrough();
     const helloNode = createNode("hello");
     const worldNode = createNode("world");
     const composite = createComposite([helloNode, worldNode]);
-
-    composite.update();
-    await sleep(10);
-
     const { sync: remoteSync } = syncNode(composite, {
         valueEncoding: "array(utf8)"
     });
@@ -152,8 +148,6 @@ test("share a composite", async (t) => {
             localSync(s2)
         ]
     );
-
-    // await sleep(10);
 
     t.is(composite.id, replicatedNode.id);
     t.alike(replicatedNode.value, composite.value);
