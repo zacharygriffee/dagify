@@ -6,7 +6,6 @@ Dagify is a lightweight functional-reactive programming (FRP) library for buildi
 > - Use `createNode()` to create a **ReactiveNode**.
 > - Use `createGraph()` to create a **ReactiveGraph** for structured node management.
 > - Use `createComposite()` to combine multiple nodes into a single reactive composite.
-> - Additional helper functions like `batch()`, `fromObservable()`, `setIdGenerator()`, and `takeUntilCompleted()` enhance your workflow.
 > - Use `createShallowNode()` to create a **ShallowReactiveNode** that only emits on shallow changes.
 
 > **Important Breaking Change:**
@@ -289,8 +288,6 @@ The `nodeFactory` function provides a lazy mechanism to create and manage nodes 
 
 ### Helper Functions
 
-- **`setIdGenerator(fn)`**  
-  (Legacy) Customize node id generation. _Note: This is less relevant now since node ids are derived from Buffer keys using z32 encoding._
 - **`fromObservable(observable)`**  
   Converts an RxJS Observable into a reactive node.
 - **`batch(fn)`**  
@@ -431,17 +428,3 @@ Contributions are welcome! Please open an issue or submit a pull request for imp
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-## Recent Commit
-
-```
-BREAKING CHANGE: Update node id handling to use Buffer-based keys and z32-encoded ids
-
-- Nodes must now provide a key as a Buffer; a node’s id is defined as the z32‑encoded representation of that key.
-- Removed tuple-mode custom id assignment from the API.
-- Updated all ReactiveGraph, ReactiveNode, Composite, and NodeFactory API documentation.
-- Revised tests to reflect the new id/key design and removed obsolete tuple-mode tests.
-- **Composite nodes now support partial updates in array mode via `set()`.**
-  - If the update array is shorter than the number of child nodes, only corresponding nodes are updated.
-  - If the update array is longer, extra values are ignored.
-```
