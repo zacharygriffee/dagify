@@ -1,6 +1,6 @@
 {
   "name": "dagify",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "A lightweight DAG-based reactive state management library.",
   "main": "index.js",
   "type": "module",

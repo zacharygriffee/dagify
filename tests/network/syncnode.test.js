@@ -1,5 +1,5 @@
 import { solo, test, skip } from "brittle";
-import {createComposite, createNode} from "../../index.js";
+import {createBridgeNode, createComposite, createNode} from "../../index.js";
 import duplexThrough from "duplex-through";
 import {sleep} from "../helpers/sleep.js";
 import {syncNode} from "../../lib/network/syncNode.js";
@@ -163,4 +163,34 @@ test("share a composite", async (t) => {
     replicatedNode.set(["foo", "bar"]);
     await sleep(10);
     t.is(bNode.value.join(" "), "foo bar");
+});
+
+test("share a bridge node", async (t) => {
+    const [s1, s2] = duplexThrough();
+
+    const x = createNode(10);
+    const y = createNode(x => x + 5, x);
+    const z = createNode(y => y * 3, y);
+    const bridgeNode = createBridgeNode(x, z);
+
+    const { sync: remoteSync } = syncNode(bridgeNode, {
+        valueEncoding: "uint8"
+    });
+
+    const { sync: localSync, node: replicatedNode } = syncNode(bridgeNode.key, {
+        valueEncoding: "uint8"
+    });
+
+    await Promise.all(
+        [
+            remoteSync(s1),
+            localSync(s2)
+        ]
+    );
+
+    t.is(replicatedNode.value, 45);
+
+    await replicatedNode.set(5);
+    await sleep(10);
+    t.is(replicatedNode.value, 30);
 });
