@@ -53,8 +53,8 @@ test('nodeFactory infers max when second argument is a number for computed nodes
     const dep = createNode(10)
     // For computed nodes, if the second argument is a number, it's taken as max.
     const computedFactory = nodeFactory(
-        ([n]) => n.value * 2,
-        5
+        n => n.value * 2,
+        dep
     )
     // Since there are no dependencies, the computed node simply returns NaN or an error,
     // but we can at least verify that the iterator stops after 5 nodes.
@@ -64,7 +64,7 @@ test('nodeFactory infers max when second argument is a number for computed nodes
         if (count === 5) break
     }
     t.is(count, 5, 'Iterator yields the correct number of nodes when max is provided as a number')
-})
+});
 
 // --- Iterator and Clear Method Tests ---
 test('nodeFactory iterator yields nodes and clear() resets the factory', t => {

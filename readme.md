@@ -1,430 +1,661 @@
-# Dagify
+# Dagify: A Reactive Dependency Graph Library
 
-Dagify is a lightweight functional-reactive programming (FRP) library for building reactive dependency graphs. It lets you create reactive nodes—both stateful and computed—that automatically propagate updates through a directed acyclic graph (DAG) of dependencies. Dagify is designed for modern JavaScript applications and works seamlessly with RxJS. In front-end projects, its nodes can also double as Svelte stores.
+Dagify is a JavaScript library designed for building and managing reactive dependency graphs. It enables developers to create dynamic, interconnected data flows with support for computed nodes, shallow reactive nodes, manual execution, and network synchronization. With its composable API, Dagify makes it easy to construct complex reactive systems, perform batched updates, and maintain consistent state across distributed applications.
 
-> **Note:**
-> - Use `createNode()` to create a **ReactiveNode**.
-> - Use `createGraph()` to create a **ReactiveGraph** for structured node management.
-> - Use `createComposite()` to combine multiple nodes into a single reactive composite.
-> - Use `createShallowNode()` to create a **ShallowReactiveNode** that only emits on shallow changes.
+# Public API Documentation
 
-> **Important Breaking Change:**
-> - **Node keys must now be Buffers.** A node’s id is defined as the z32‑encoded string of its key. This change removes the previous tuple‑mode for custom id assignment and deviates from the previous API.
+The following functions are exposed through the public index files. They serve as the primary entry points for users to create and manage reactive nodes, graphs, composites, and perform related operations.
 
-## Table of Contents
-
-- [Installation](#installation)
-- [API Reference](#api-reference)
-  - [ReactiveNode API](#reactivenode-api)
-    - [Buffer Keys and z32‑Encoded IDs](#buffer-keys-and-z32-encoded-ids)
-    - [Update Behavior for Stateful Nodes](#update-behavior-for-stateful-nodes)
-    - [Function and Async Function Dependencies](#function-and-async-function-dependencies)
-    - [Shallow Reactive Nodes](#shallow-reactive-nodes)
-  - [ReactiveGraph API](#reactivegraph-api)
-  - [Composite Nodes](#composite-nodes)
-  - [Node Factory API](#node-factory-api)
-  - [Helper Functions](#helper-functions)
-- [Usage Examples](#usage-examples)
-  - [Creating Stateful and Computed Nodes](#creating-stateful-and-computed-nodes)
-  - [Creating a Shallow Reactive Node](#creating-a-shallow-reactive-node)
-  - [Managing a Reactive Graph](#managing-a-reactive-graph)
-  - [Advanced Node Features](#advanced-node-features)
-- [Contributing](#contributing)
-- [License](#license)
-- [Recent Commit](#recent-commit)
-
-## Installation
-
-Install Dagify via npm:
-
-```bash
-npm install dagify
-```
-
-## API Reference
-
-### ReactiveNode API
-
-Create nodes using `createNode()`. A **ReactiveNode** supports both stateful (manual updates) and computed (derived) behavior.
-
-#### Buffer Keys and z32‑Encoded IDs
-
-- **Key Requirement:**  
-  Every node must have a `key` property that is a Buffer.
-- **Node ID:**  
-  A node’s `id` is defined as the z32‑encoded string representation of its Buffer key (i.e. `node.id === z32.encode(node.key)`). This guarantees a fixed, consistent id format across the network.
-
-#### Key Methods
-
-- **`set(value)`**  
-  Sets a new value for stateful nodes.  
-  _Note: `set()` returns a promise that resolves on the next tick, allowing you to optionally await state propagation._
-
-- **`update(fn)`**  
-  Updates the node’s value.  
-  For computed nodes, this triggers recomputation; for stateful nodes, it forces a re-emission (even if the value is deep‑equal to the previous one).
-
-  ```js
-  // Re-emit the current value:
-  count.update();
-  // Update based on a function:
-  count.update(val => val + 1);
-  // Directly set a new value:
-  count.update(42);
-  ```
-
-- **`subscribe(callback)`**  
-  Subscribes to value changes.
-
-- **`subscribeOnce(callback)`**  
-  Subscribes to the next emission only.
-
-- **`skip`**  
-  A subscription interface that skips the initial emission.
-
-- **`once`**  
-  A one-time subscription interface.
-
-- **`toObservable()`**  
-  Converts the node to an RxJS Observable.
-
-- **`complete()`**  
-  Completes the node so that no further updates occur.
-
-- **`addDependency(...args)`** and **`removeDependency(...args)`**  
-  Manage dependencies for computed nodes using a unified API.
-
-  **Important:**
-  - **Dependencies for computed nodes must be passed as a single argument:**  
-    Either an array (positional mode) or an object (named mode).
-  - The older API that accepted multiple dependency arguments is no longer supported.
-
-#### Update Behavior for Stateful Nodes
-
-Stateful nodes (created with non-function values) use `update()` to force re-emission of the current value, even if it is deep‑equal to the previous value. This behavior helps refresh function dependencies that might resolve asynchronously.
-
-#### Function and Async Function Dependencies
-
-When you pass a function (or async function) as the dependency to `createNode()`, it is automatically wrapped as a computed node:
-- **Synchronous functions** are re-evaluated on every update.
-- **Async functions** are treated as computed nodes that update once the promise resolves.
-
-#### Shallow Reactive Nodes
-
-Use `createShallowNode()` to create a node that only emits when shallow differences occur (i.e. when the top‑level reference changes).
-
-```js
-import { createShallowNode } from "dagify";
-
-const shallowNode = createShallowNode({ a: { b: 1 } });
-shallowNode.subscribe(val => console.log("Shallow node:", val));
-shallowNode.set({ a: { b: 1 } }); // Update is emitted if top‑level reference changes.
-```
-
-### ReactiveGraph API
-
-Create a graph using `createGraph()`. The **ReactiveGraph** organizes nodes, prevents cycles, and provides extensive introspection—all while relying internally on Buffer-based keys.
-
-**Key Features:**
-
-- **Buffer-Based Keys:**  
-  Every node’s key is a Buffer. A node’s id is its z32‑encoded string (e.g. used in error messages or `toString()`).
-
-- **Node Management:**
-  - **`addNode(node)`**  
-    Adds a node (a dagify node object with a Buffer key).
-  - **`addNodes(nodes)`**  
-    Adds multiple nodes.
-  - **`upsertNode(node)`**  
-    Retrieves an existing node by its key or adds it if not present.
-
-- **Edge Management:**
-  - **`connect(srcRef, tgtRef)`**  
-    Connects nodes. All node references are resolved to Buffer keys internally.
-  - **`disconnect(srcRef, tgtRef)`**  
-    Disconnects nodes.
-  - Cycle detection is enforced—attempting to create a cycle throws an error.
-
-- **Graph Introspection:**  
-  Methods such as `getNode()`, `getNodes()`, `getEdges()`, `findNode()`, `getInDegree()`, `getOutDegree()`, `hasNode()`, and `hasEdge()` allow detailed inspection of the graph structure.
-
-- **Update Propagation:**
-  - **`update()`**  
-    Calls `update()` on all computed nodes in topological order.
-  - **`updateAsync()`**  
-    Asynchronously updates computed nodes in order.
-
-- **Graph Analysis:**
-  - **`topologicalSort()`**  
-    Returns an array of node keys (Buffers) sorted in topological order.
-  - **`getConnectedComponent(ref)`**  
-    Returns the connected component (all nodes reachable in any direction) for a given node.
-
-- **String Representation:**
-  - **`toString()`**  
-    Returns a human‑readable string representation of the graph (using z32‑encoded ids).
-
-### Execution Node API
-
-**ExecutionNodes** extend the ReactiveNode abstraction to allow explicit control over when values are emitted. Instead of automatically propagating updates when dependencies change or when subscribers are added, an ExecutionNode only emits its value when it is explicitly triggered. This behavior applies to both computed nodes (which derive their state from dependencies) and stateful nodes (which hold a direct value).
-
-#### Creating an ExecutionNode
-
-You can create an ExecutionNode using the `createExecutionNode()` factory function. For computed nodes, you supply a function and (optionally) dependencies; for stateful nodes, you supply a value. In either case, the node will only emit its state when `triggerExecution()` is called (or when an external execution trigger is provided).
-
-```js
-/**
- * Creates a new ExecutionNode instance.
- *
- * This factory function instantiates an ExecutionNode that only emits values when explicitly triggered.
- * For computed nodes, the node's value is derived from the provided function and dependencies,
- * and will only recompute and emit upon a manual trigger.
- * For stateful nodes, the provided value is used and will only be emitted when triggered.
- *
- * @param {Function|*} fnOrValue - For computed nodes, a function that derives the node's value from its dependencies;
- *                                 for stateful nodes, the initial value.
- * @param {Array|Object} [dependencies=[]] - Optional dependencies for computed nodes. Can be an array for positional
- *                                           dependencies or an object for named dependencies. Ignored for stateful nodes.
- * @param {Subject} [executionStream] - Optional RxJS Subject that controls triggering of the node. If not provided,
- *                                      a new Subject is created internally.
- * @returns {ExecutionNode} A new ExecutionNode instance.
- */
-const createExecutionNode = (fnOrValue, dependencies = [], executionStream) =>
-  new ExecutionNode(fnOrValue, dependencies, executionStream);
-```
-
-#### Example Usage
-
-**Stateful ExecutionNode:**
-
-```js
-import { createExecutionNode } from "dagify";
-
-const statefulNode = createExecutionNode(42);
-statefulNode.subscribe(val => console.log("Stateful value:", val));
-
-// No emission occurs on subscription. When triggered, the node emits its current value.
-statefulNode.triggerExecution(); // Logs: "Stateful value: 42"
-```
-
-**Computed ExecutionNode:**
-
-```js
-import { createNode, createExecutionNode } from "dagify";
-
-// Create base stateful nodes.
-const a = createNode(10);
-const b = createNode(20);
-
-// Create a computed node that sums its dependencies.
-const sumNode = createExecutionNode(
-  ({ a, b }) => a + b,
-  { a, b }
-);
-
-// No emission occurs on subscription.
-sumNode.subscribe(val => console.log("Computed sum:", val));
-
-// The computed node's internal value is computed upon creation (sum equals 30), but it won't emit until triggered.
-console.log("Internal computed value:", sumNode.value); // 30
-
-// Triggering forces recomputation and emission.
-sumNode.triggerExecution(); // Logs: "Computed sum: 30"
-```
-
-#### Key Points
-
-- **Explicit Triggering:**  
-  ExecutionNodes do not automatically emit their value when dependencies change or when a subscriber is added. They emit only when `triggerExecution()` is called (or via an external execution stream).
-
-- **Push-Based Updates:**  
-  This model allows you to control propagation of state explicitly, which can be useful when you want to optimize update timing, rate limit emissions, or coordinate multiple reactive flows.
-
-- **Uniform API:**  
-  The same API works for both computed and stateful nodes, letting you use execution nodes as a fundamental building block in your reactive graphs.
 
 ---
 
-### Composite Nodes
+## Node Creation & Management
 
-Composite nodes are created using `createComposite()` and allow you to combine multiple nodes into a single reactive unit. The composite updates when any of its constituent nodes change.
+### createNode
 
-#### `set()` Method Behavior for Composite Nodes
+Creates a new reactive node. This function instantiates a standard reactive node that can be either computed (when passed a function) or static.
 
-Composite nodes support a versatile `set()` method that updates the underlying child nodes, with behavior that varies based on the provided value type:
-
-- **Array Mode:**
-  - **Array Input:**  
-    When an array is passed to `set()`, the composite updates its child nodes by matching array indexes:
-    - **Partial Update:**  
-      If the provided array is **shorter** than the number of child nodes, only the nodes corresponding to the provided indexes are updated; the remaining nodes remain unchanged.
-    - **Extra Values:**  
-      If the provided array is **longer** than the number of child nodes, the extra values are simply ignored.
-  - **Single Value Input:**  
-    If a non-array value is passed to `set()`, every child node is updated with that same value.
-
-- **Object Mode:**
-  - **Object Input:**  
-    When an object is provided, `set()` looks for keys that match the composite’s dependencies:
-    - **Matching Keys:**  
-      For keys that correspond to a child node, the node is updated with the new value.
-    - **Non-Matching Keys:**  
-      Any keys that do not match a child node are ignored. This allows partial updates by only providing the keys you wish to change without affecting the other nodes.
-
-This flexible design is particularly useful in network-replicated scenarios where the incoming update might represent only a subset of the composite's full structure. Partial updates can be applied without errors, and extra or non-matching values are simply disregarded.
-
-### Node Factory API
-
-The `nodeFactory` function provides a lazy mechanism to create and manage nodes on-demand. It returns a proxy that:
-
-- **Lazily Creates Nodes:**  
-  When a property is accessed, it creates a node using `createNode(value, deps)` and caches it.
-  - For computed nodes (when `value` is a function), dependencies are applied.
-  - For stateful nodes (when `value` is not a function), an optional activator function is invoked.
-- **Supports Iteration:**  
-  The proxy implements the iterator protocol, yielding sequentially created nodes (up to a maximum count).
-- **Clear Method:**  
-  The factory exposes a `clear()` method to remove all cached nodes (calling `complete()` on each if available).
-
-### Helper Functions
-
-- **`fromObservable(observable)`**  
-  Converts an RxJS Observable into a reactive node.
-- **`batch(fn)`**  
-  Batches multiple updates so that subscribers receive only the final value.
-- **`takeUntilCompleted()`**  
-  A custom RxJS operator that completes a stream when a notifier (e.g. a node) completes.
-
-## Usage Examples
-
-### Creating Stateful and Computed Nodes
-
-#### Stateful Node
+**Signature**
 
 ```js
-import { createNode } from "dagify";
-
-const count = createNode(1);
-count.subscribe(val => console.log("Count:", val));
-count.set(5).then(() => console.log("State updated."));
+createNode(fnOrValue, dependencies = [], config)
 ```
 
-#### Computed Node (with Dependencies)
+**Parameters**
 
-Dependencies must be provided as a single argument: either an array (positional) or an object (named).
+- **fnOrValue**: A function (for computed nodes) or an initial value (for static nodes).
+- **dependencies**: An array (or any list) of dependencies for computed nodes.
+- **config**: Optional configuration options.
+
+**Returns**
+
+A new instance of a reactive node.
+
+---
+
+### createShallowNode
+
+Creates a new shallow reactive node that only emits updates when shallow changes to its value are detected. It uses shallow equality (instead of deep equality) for change detection.
+
+**Signature**
+
+```js
+createShallowNode(fnOrValue, dependencies = [], config)
+```
+
+**Parameters**
+
+- **fnOrValue**: A function to compute the node’s value (for computed nodes) or a static value.
+- **dependencies**: An array or single dependency.
+- **config**: Optional configuration options.
+
+**Returns**
+
+A new instance of `ShallowReactiveNode`.
+
+---
+
+### createBridgeNode
+
+Creates a bridge node that connects an input node to an output node. The bridge node forwards new values from the input node to the output node. Its internal value always reflects the output node’s current state. Errors during output computation are handled silently.
+
+**Signature**
+
+```js
+createBridgeNode(input, output, config = {})
+```
+
+**Parameters**
+
+- **input**: The reactive node to which updates are sent.
+- **output**: The reactive node whose processed (computed) value is exposed.
+- **config**: Optional configuration options.
+
+**Returns**
+
+A new instance of `BridgeNode`.
+
+---
+
+### createExecutionNode
+
+Creates a new execution node that only emits values when explicitly triggered. In computed mode, the node recomputes its value only when manually triggered (or via an external execution stream), while static nodes simply emit their current value when triggered.
+
+**Signature**
+
+```js
+createExecutionNode(fnOrValue, dependencies = [], executionStream, config)
+```
+
+**Parameters**
+
+- **fnOrValue**: A function (for computed nodes) or an initial value (for static nodes).
+- **dependencies**: Dependencies for computed nodes (positional array or named object). Ignored for static nodes.
+- **executionStream**: An optional RxJS Subject to control triggering. If not provided, one is created internally.
+- **config**: Optional configuration options.
+
+**Returns**
+
+A new instance of `ExecutionNode`.
+
+---
+
+### batch
+
+Executes multiple updates in batch mode so that subscribers receive only the final update. This is useful for performance optimization when several changes occur together.
+
+**Signature**
+
+```js
+batch(fn)
+```
+
+**Parameters**
+
+- **fn**: A function containing multiple updates that will be batched.
+
+---
+
+### nodeFactory
+
+Exports a lazy node creation utility. The node factory returns a Proxy object that lazily creates and manages nodes.
+
+**Usage**
+
+```js
+nodeFactory(value, depsOrActivator, max)
+```
+
+**Parameters**
+
+- **value**: The base value or function for node creation.
+- **depsOrActivator**: For computed nodes, an array (or single dependency) of dependencies; for stateful nodes, an activator function (or number representing max nodes).
+- **max**: Maximum number of nodes to create (default is 1000).
+
+**Returns**
+
+A Proxy object for lazy node management.
+
+---
+
+### isDagifyNode
+
+Exports a utility to check if a node is a Dagify node.  
+*(See the implementation for further details.)*
+
+---
+
+## Graph & Composite
+
+### createGraph
+
+Creates a new reactive graph instance. The graph manages nodes and the dependencies (edges) between them. It also provides utilities for connecting, disconnecting, and updating nodes in a topological order.
+
+**Signature**
+
+```js
+createGraph(config)
+```
+
+**Parameters**
+
+- **config**: Optional configuration object for the graph.
+
+**Returns**
+
+A new instance of `ReactiveGraph`.
+
+---
+
+### createComposite
+
+Creates a composite node from a collection of reactive nodes. The composite’s value is a combination (array or object) of the values of its child nodes.
+
+**Signature**
+
+```js
+createComposite(nodes)
+```
+
+**Parameters**
+
+- **nodes**: Either an array or an object (mapping keys to reactive nodes).
+
+**Returns**
+
+A new composite instance.
+
+---
+
+## Synchronization & Utilities
+
+### syncNode & getEncoder
+
+The index file also re-exports all public methods from the sync node module and the encoder utility. The `syncNode` function creates a synchronization wrapper for a reactive node (to support network replication), while `getEncoder` resolves a value encoding function.
+
+**Usage**
+
+These are exported via:
+
+```js
+export * from "./syncNode.js";
+export * from "../util/getEncoder.js";
+```
+
+Refer to the respective modules for detailed API documentation.
+
+> citeturn1file2
+
+# API Documentation
+
+This documentation covers the main classes and functions from the following files:
+
+- **Composite.js** citeturn0file0
+- **ReactiveGraph.js** citeturn0file1
+- **syncNode.js** citeturn0file2
+- **BridgeNode.js** citeturn0file3
+- **ExecutionNode.js** citeturn0file4
+- **nodeFactory.js** citeturn0file5
+- **ReactiveNode.js** citeturn0file6
+- **ShallowReactiveNode.js** citeturn0file7
+
+---
+
+## Contents
+
+- [Composite](#composite)
+- [ReactiveGraph](#reactivegraph)
+- [syncNode](#syncnode)
+- [BridgeNode](#bridgenode)
+- [ExecutionNode](#executionnode)
+- [nodeFactory](#nodefactory)
+- [ReactiveNode](#reactivenode)
+- [ShallowReactiveNode](#shallowreactivenode)
+
+---
+
+## Composite
+
+`Composite` is a collection of reactive nodes that emits a composite value whenever any of its children change. It can be constructed from an array or an object of nodes.
+
+### Constructor
+
+```js
+new Composite(nodes, config)
+```
+
+- **nodes**: Either an `Array<ReactiveNode>` or an `Object<string, ReactiveNode>`.
+- **config**: Optional configuration object. May include a `keyPair` property.
+
+### Properties
+
+- **id**: Returns a z32‑encoded unique identifier based on the node’s public key.
+- **key**: Gets or sets the node’s public key (32-byte Buffer).
+- **discoveryKey**: Returns the discovery key (computed with hypercore-crypto).
+
+### Methods
+
+- **addNodes(nodes)**  
+  Adds new reactive nodes. For array-based composites, accepts a single node or array of nodes. For object-based composites, accepts an object mapping keys to nodes.
+
+- **removeNodes(nodes)**  
+  Removes nodes from the composite. For arrays, accepts a node or array of nodes; for objects, accepts key(s) or an object with keys to remove.
+
+- **_emit(force?)**  
+  Emits the current composite value if it has changed or if forced.
+
+- **_initialize()**  
+  Subscribes to all child nodes and initializes internal state.  
+  *(Internal method – not part of the public API)*
+
+---
+
+## ReactiveGraph
+
+`ReactiveGraph` represents a reactive dependency graph for dagify nodes. Each node is stored using a Buffer key and identified using a z32‑encoded id.
+
+### Constructor
+
+```js
+new ReactiveGraph(config)
+```
+
+- **config**: Optional configuration object.
+
+### Methods
+
+- **_idForKey(key)**  
+  Returns the z32‑encoded string representation of a given Buffer key.
+
+- **_resolveKey(ref)**  
+  Resolves a node reference (string, Buffer, or dagify node) into a Buffer key.
+
+- **upsertNode(node)**  
+  Retrieves an existing node by key or adds a new one if it does not exist.  
+  *Throws an error if the node is invalid.*
+
+- **addNode(node)**  
+  Adds a new node to the graph.  
+  *Throws if a node with the same key already exists.*
+
+- **addNodes(nodes)**  
+  Adds multiple nodes.
+
+- **removeNode(nodeRef)**  
+  Removes a node and all its connections (both outgoing and incoming edges).
+
+- **connect(srcRef, tgtRef)**  
+  Connects two nodes by adding an edge from the source to the target. Validates node existence and checks for cycles.
+
+- **disconnect(srcRef, tgtRef)**  
+  Disconnects source node(s) from target node(s).
+
+- **createsCycle(srcKey, tgtKey)**  
+  Checks if connecting two nodes would create a cycle.
+
+- **update() / updateAsync()**  
+  Updates computed nodes in topological order (synchronously or asynchronously).
+
+- **topologicalSort()**  
+  Returns an array of node keys sorted in topological order.  
+  *Throws an error if a cycle is detected.*
+
+- **getNode(refOrRefs)**, **getNodes()**, **getEdges()**  
+  Retrieve nodes or edges from the graph.
+
+- **findNode(predicate)**  
+  Finds the first node matching a given predicate.
+
+- **getImmediatePredecessors(ref)** / **getPredecessors(ref, options)**  
+  Retrieves immediate or transitive predecessor nodes.
+
+- **getImmediateSuccessors(ref)** / **getSuccessors(ref, options)**  
+  Retrieves immediate or transitive successor nodes.
+
+- **getSources()** / **getSinks()**  
+  Returns nodes with no incoming or outgoing edges, respectively.
+
+---
+
+## syncNode
+
+`syncNode` is a function that creates a synchronization wrapper for a reactive node to enable network replication.
+
+### Function Signature
+
+```js
+const syncNode = (nodeOrKey, config) => { ... }
+```
+
+### Parameters
+
+- **nodeOrKey**: Either an existing ReactiveNode or a key (string or Buffer) for a remote node.
+- **config**: Optional configuration object with:
+  - **valueEncoding**: (Optional) String value encoding (e.g., `"utf8"`).
+  - **mode**: Local mode, one of `"sink"`, `"source"`, or `"transform"` (default is `"transform"`).
+
+### Returns
+
+An object containing:
+- **node**: The synchronized reactive node.
+- **sync(socket)**: A method that establishes an RPC-based synchronization over a given network socket.  
+  This method handles the handshake process and sets up RPC responders/subscriptions to synchronize state.
+
+---
+
+## BridgeNode
+
+`BridgeNode` is a thin wrapper that connects an input node (where values are fed) with an output node (whose computed value is exposed).
+
+### Constructor
+
+```js
+new BridgeNode(inputNode, outputNode, config)
+```
+
+- **inputNode**: A ReactiveNode to which new values are forwarded.
+- **outputNode**: A ReactiveNode whose value is used as the BridgeNode’s value.
+- **config**: Optional configuration.
+
+### Methods
+
+- **set(newValue)**  
+  Forwards a new value to the input node and then forces the output node to recompute. Returns a promise that resolves on the next tick.
+
+- **complete()**  
+  Completes the BridgeNode by unsubscribing from the output node and then calling the base complete method.
+
+---
+
+## ExecutionNode
+
+`ExecutionNode` extends `ReactiveNode` to allow manual triggering of computation or state emission. Automatic dependency-triggered updates are suppressed.
+
+### Constructor
+
+```js
+new ExecutionNode(fnOrValue, dependencies, executionStream, config)
+```
+
+- **fnOrValue**: For computed nodes, a function; for static nodes, a value.
+- **dependencies**: For computed nodes, the dependency (or dependencies) on which the node relies.
+- **executionStream**: An RxJS Observable (or stream) used to trigger manual execution.
+- **config**: Optional configuration.
+
+### Methods
+
+- **compute(manualTrigger = false)**  
+  Overrides the standard compute. In manual mode, the node recomputes only when triggered.
+
+- **triggerExecution()**  
+  Manually triggers execution:
+  - For computed nodes, forces recomputation.
+  - For static nodes, emits the current value.
+
+- **_subscribeCore(observer)**  
+  Custom subscription logic so that an initial value is not emitted automatically.  
+  *(Internal – not meant for direct use.)*
+
+- **dispose()**  
+  Cleans up subscriptions related to the execution stream.
+
+---
+
+## nodeFactory
+
+`nodeFactory` is a lazy node creation and management utility that returns a Proxy. It supports both computed and stateful nodes.
+
+### Function Signature
+
+```js
+const nodeFactory = (value, depsOrActivator, max) => { ... }
+```
+
+### Parameters
+
+- **value**: The base value or function to create nodes.
+  - If a function, a computed node is created and the second argument is treated as dependencies.
+  - Otherwise, a static node is created.
+- **depsOrActivator**:
+  - For computed nodes: an array (or a single dependency) used during node creation.
+  - For static nodes: an activator function that is called on node creation.
+  - Alternatively, if a number is provided, it is taken as `max`.
+- **max**: The maximum number of nodes that can be created. Defaults to 1000.
+
+### Returns
+
+A Proxy object that:
+- Lazily creates nodes on property access.
+- Supports iteration to get sequentially created nodes.
+- Provides a `clear()` method to remove all stored nodes.
+
+---
+
+## ReactiveNode
+
+`ReactiveNode` is the core class representing a node in a directed acyclic graph (DAG) with support for computed values, subscriptions, error handling, and dependency management.
+
+### Constructor
+
+```js
+new ReactiveNode(fnOrValue, dependencies, config)
+```
+
+- **fnOrValue**:
+  - For computed nodes: a function that computes a value.
+  - For static nodes: any non-function value.
+- **dependencies**: For computed nodes, an array or object representing the node’s dependencies.
+- **config**: Optional configuration options (e.g., custom keyPair, errorRetentionTime).
+
+### Properties
+
+- **dependencyError$**: An Observable that emits errors from dependencies.
+- **isDagifyNode**: Returns `true` to indicate this is a dagify node.
+- **isAsync**: Indicates if the node’s computation is asynchronous.
+- **isComputed**: Boolean flag indicating if the node is computed.
+- **id**: A unique identifier (z32‑encoded public key).
+- **key**: Gets or sets the public key (32-byte Buffer).
+- **discoveryKey**: Returns the discovery key.
+- **skip**: Returns an Observable that skips the initial emission.
+- **once**: Returns an Observable that emits only the next value.
+
+### Methods
+
+- **compute()**  
+  Computes the node’s value based on dependencies. Handles synchronous, observable, or promise-based results.
+
+- **set(newValue)**  
+  For static nodes, manually sets a new value.  
+  *Throws an error if called on a computed node.*
+
+- **next(value)**  
+  Acts like `set()` for static nodes or triggers recomputation for computed nodes.
+
+- **subscribe(observer)**  
+  Subscribes to value changes on the node.  
+  Returns an unsubscribe function.
+
+- **subscribeOnce(observer)**  
+  Subscribes to the node and automatically unsubscribes after one emission.
+
+- **error(err)**  
+  Notifies subscribers of an error.
+
+- **complete()**  
+  Completes the node, notifying subscribers and cleaning up resources.
+
+- **_setValue(newValue, forceEmit?)**  
+  Internal method to update the node’s value and notify subscribers if the value changes.
+
+- **_subscribeCore(observer)**, **_initializeObserver(observer)**, **_notifyAll(type, value)**  
+  Internal methods for handling subscriptions and notifications.
+
+- **_unsubscribeDependencies()**  
+  Unsubscribes from all dependency subscriptions.
+
+- **addDependency(...args)**  
+  Adds one or more dependencies to a computed node. Supports both positional (array) and named (object) dependencies.
+
+- **filterDependencyErrors(depValue, normalizedDeps, errorSubject)**  
+  Filters dependency values to remove errors before computation.
+
+- **Static Methods:**
+  - **ReactiveNode.scheduleUpdate(node)**  
+    Schedules an update for a node.
+  - **ReactiveNode.batch(fn)**  
+    Runs multiple updates in batch mode so that subscribers receive only the final update.
+
+---
+
+## ShallowReactiveNode
+
+`ShallowReactiveNode` extends `ReactiveNode` but overrides value comparison to use shallow equality (instead of deep equality).
+
+### Implementation
+
+- Overrides the **_setValue(newValue, forceEmit?)** method to compare previous and new values using a shallow equality check.
+
+# Examples
+Below are two examples: one basic and one advanced, demonstrating how to use Dagify.
+
+---
+
+## Basic Example: Static and Computed Nodes
+
+This example shows how to create a static node and a computed node that derives its value from the static node. When the static node is updated, the computed node automatically recalculates its value.
 
 ```js
 import { createNode } from "dagify";
 
-const a = createNode(10);
-const b = createNode(20);
-const sum = createNode(
-  ({ a, b }) => a + b,
-  { a, b }
+// Create a static node with an initial value.
+const staticNode = createNode(10);
+
+// Create a computed node that doubles the value of the static node.
+const computedNode = createNode(
+  (deps) => deps[0] * 2, // Function receives an array of dependencies.
+  [staticNode]
 );
 
-sum.subscribe(val => console.log("Sum:", val)); // Logs: Sum: 30
-```
-
-#### Asynchronous Computed Node
-
-```js
-import { createNode } from "dagify";
-
-const count = createNode(1);
-const asyncDouble = createNode(
-  ([val]) =>
-    new Promise(resolve => setTimeout(() => resolve(val * 2), 50)),
-  [count]
-);
-
-asyncDouble.subscribe(val => console.log("Async double:", val));
-count.set(4); // Eventually logs "Async double: 8"
-```
-
-### Creating a Shallow Reactive Node
-
-```js
-import { createShallowNode } from "dagify";
-
-const shallowNode = createShallowNode({ a: { b: 1 } });
-shallowNode.subscribe(val => console.log("Shallow node:", val));
-shallowNode.set({ a: { b: 1 } }); // Emits update if top-level reference changes
-```
-
-### Managing a Reactive Graph
-
-```js
-import { createGraph, createNode } from "dagify";
-
-const graph = createGraph();
-
-const a = createNode(1);
-const b = createNode(2);
-const sum = createNode((values) => values[0] + values[1], [a]);
-
-graph.addNode(a);
-graph.addNode(b);
-graph.addNode(sum);
-
-graph.connect(a, sum);
-graph.connect(b, sum);
-
-sum.subscribe(val => console.log("Sum:", val));
-
-a.set(3); // Logs updated computed value.
-b.set(4); // Logs updated computed value.
-```
-
-### Advanced Node Features
-
-#### Batched Updates
-
-```js
-import { createNode, batch } from "dagify";
-
-const value = createNode(0);
-value.subscribe(val => console.log("Batched value:", val));
-
-batch(() => {
-  value.set(1);
-  value.set(2);
-  value.set(3);
+// Subscribe to the computed node to log its value on every update.
+computedNode.subscribe((value) => {
+  console.log("Computed Node Value:", value);
 });
-// Subscribers receive only the final value: 3.
+
+// Update the static node's value after 1 second.
+setTimeout(() => {
+  staticNode.set(20);
+  // Expected output after update: "Computed Node Value: 40"
+}, 1000);
 ```
 
-#### Skip Initial Emission and Once Subscriptions
+*Explanation:*  
+A static node is created with a starting value of 10. The computed node receives the static node as a dependency and computes its value by doubling it. When you update the static node from 10 to 20, the computed node automatically recalculates and emits the new value (40).
+
+---
+
+## Advanced Example: Composite and Graph with Batch Updates
+
+This advanced example demonstrates how to build a reactive graph that connects multiple nodes, combine them into a composite, and use batch updates for performance optimization. The composite aggregates multiple nodes, while the graph manages their dependencies and connections.
 
 ```js
-import { createNode } from "dagify";
+import { createNode, createComposite, createGraph, batch } from "dagify";
 
-const node = createNode(10);
-node.skip.subscribe(val => console.log("Skip subscription:", val));
-node.subscribeOnce(val => console.log("subscribeOnce:", val));
-node.once.subscribe(val => console.log("once subscription:", val));
-node.set(20); // Each logs only once.
+// Create nodes:
+const nodeA = createNode(5);
+const nodeB = createNode(
+  (deps) => deps[0] + 3,
+  [nodeA]
+);
+const nodeC = createNode(
+  (deps) => deps[0] * 2,
+  [nodeB]
+);
+
+// Build a composite that aggregates nodeA, nodeB, and nodeC.
+const composite = createComposite([nodeA, nodeB, nodeC]);
+
+composite.subscribe((values) => {
+  console.log("Composite Values:", values);
+});
+
+// Create a reactive graph and add nodes to it.
+const graph = createGraph();
+graph.addNode(nodeA);
+graph.addNode(nodeB);
+graph.addNode(nodeC);
+
+// Connect nodes in the graph: nodeA -> nodeB and nodeB -> nodeC.
+graph.connect(nodeA, nodeB);
+graph.connect(nodeB, nodeC);
+
+// Log the topological order of nodes in the graph.
+const sortedKeys = graph.topologicalSort();
+console.log("Graph Topological Order:", sortedKeys);
+
+// Perform multiple updates in a batch to optimize emissions.
+batch(() => {
+  // Update static node nodeA.
+  nodeA.set(10);
+  // Further updates can be added here.
+  nodeA.set(15);
+});
+
+// After batch completes, the composite will emit a final combined update.
+// Expected output: Composite values reflecting the final state of nodeA, nodeB, and nodeC.
 ```
 
-#### Composite Aggregation
+*Explanation:*
+1. **Nodes & Dependencies:**
+  - **nodeA:** A static node with an initial value.
+  - **nodeB:** A computed node that adds 3 to nodeA’s value.
+  - **nodeC:** A computed node that doubles nodeB’s value.
 
-```js
-import { createNode, createComposite } from "dagify";
+2. **Composite:**  
+   The composite aggregates these nodes. Whenever any of the nodes change, the composite emits the updated array of values.
 
-const node1 = createNode(1);
-const node2 = createNode(2);
-const composite = createComposite([node1, node2]);
+3. **Graph:**  
+   A reactive graph is created to manage these nodes and their dependencies. Nodes are connected in a chain (nodeA → nodeB → nodeC) and the topological order is logged.
 
-composite.subscribe(values => console.log("Composite (array mode):", values));
+4. **Batch Updates:**  
+   The `batch` function groups multiple updates to nodeA. During a batch, intermediate changes are suppressed so that subscribers only see the final state.
+   
+This advanced example illustrates how Dagify can be used to build complex reactive systems with integrated dependency management and optimized update handling.
 
-node1.set(10); // Logs: [10, 2]
-node2.set(20); // Logs: [10, 20]
-```
 
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request for improvements, bug fixes, or new features.
+---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+Dagify is released under the [MIT License](LICENSE).
+
+## Contributing
+
+Contributions are welcome! Please review our [contributing guidelines](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
+
+## Acknowledgements
+
+Special thanks to all contributors and the open source community for making this project possible.
+
+---
+
+© 2025 Dagify. All rights reserved.

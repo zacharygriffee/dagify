@@ -33,7 +33,7 @@ test("graph basic test", async t => {
 
     t.alike(c.value, [11, 12]);
 
-    const e = createNode(values => values.flat().reduce((acc, res) => acc * res));
+    const e = createNode(values => values.length && values.flat().reduce((acc, res) => acc * res));
     graph.addNode(e);
     graph.connect(c, e);
 

@@ -1,5 +1,5 @@
 import { test, solo } from "brittle";
-import { Subject } from "../../lib/rxjs/rxjsPrebuilt.js";
+import { Subject } from "rxjs";
 import { createNode } from "../../index.js";
 import { ExecutionNode } from "../../lib/node/ExecutionNode.js";
 import { sleep } from "../helpers/sleep.js";

@@ -872,14 +872,15 @@ test("Check equality of node", async t => {
 });
 
 test("error persists even after dependency update", async t => {
+    t.plan(3);
     t.comment(`
     Throwing in a node is a 'critical' issue, and will cause the node to not operate
     ever again. This is the way observable contract works. Designing a node to handle errors gracefully is up to the developer.
     If an node errors, dependencies will not know about it they will think it is operating normally.
     So, instead of throwing in a node, it is recommended to use a try/catch block. And reserve throwing
     as a truly critical problem.
-    
-    While you can catch errors per node, the node ceases to operate after that.
+
+    If you need to capture error state, the node exposes a dependencyError$ subject. 
     '
     `);
     const x = createNode(5);
@@ -890,8 +891,13 @@ test("error persists even after dependency update", async t => {
         else return x;
     }, x);
     const z = createNode(y => {
+        t.fail("Node will not fire because y is in error state");
         return y * y;
     }, y);
+
+    z.dependencyError$.subscribe(e => {
+        t.is(e.message, "Thrown", "Error is thrown")
+    });
     // Wait a bit so that error has time to propagate.
     await sleep(10);
     t.is(z.value, undefined, "Value is undefined due to error");
