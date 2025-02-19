@@ -280,3 +280,84 @@ test("Test that a Composite can utilize computed nodes and reflect dynamic depen
     // Clean up
     unsubscribe.unsubscribe();
 });
+
+test("Composite update should force emission even if value hasn't changed", async (t) => {
+    t.plan(3);
+    const node = createNode(42);
+    const comp = new Composite([node]);
+
+    const emissions = [];
+    const unsubscribe = comp.subscribe(val => {
+        emissions.push(val);
+    });
+
+    // Allow the initial emission.
+    await delay(50);
+    const initialEmissionCount = emissions.length;
+
+    // Call update() to force an emission.
+    comp.update();
+    await delay(50);
+    t.is(emissions.length, initialEmissionCount + 1, "update() forces an emission even if value is unchanged");
+
+    // Change the node's value and force an update.
+    node.set(100);
+    await delay(50);
+    comp.update();
+    await delay(50);
+
+    // The emission before forced update should reflect the updated value.
+    t.is(emissions[emissions.length - 2][0], 100, "Composite emitted updated value before forced update");
+    // The forced emission should emit the same updated value.
+    t.is(emissions[emissions.length - 1][0], 100, "Forced update emits the correct updated value");
+
+    unsubscribe.unsubscribe();
+});
+
+// Test for array-mode Composite: partial update should update matching indexes only.
+test("Composite set in array mode with partial array update updates matching indexes only", async (t) => {
+    t.plan(3);
+    const node1 = createNode(1);
+    const node2 = createNode(2);
+    const node3 = createNode(3);
+    const comp = new Composite([node1, node2, node3]);
+
+    // Provide only two values, so only node1 and node2 should update.
+    comp.set([10, 20]);
+    await delay(50);
+
+    t.alike(node1.value, 10, "Node 1 should update to 10");
+    t.alike(node2.value, 20, "Node 2 should update to 20");
+    t.alike(node3.value, 3, "Node 3 should remain unchanged");
+});
+
+// Test for array-mode Composite: extra values in the update array should be ignored.
+test("Composite set in array mode with extra values ignores extra values", async (t) => {
+    t.plan(3);
+    const node1 = createNode(1);
+    const node2 = createNode(2);
+    const comp = new Composite([node1, node2]);
+
+    // Provide three values, but the composite only has two nodes.
+    comp.set([10, 20, 30]);
+    await delay(50);
+
+    t.alike(node1.value, 10, "Node 1 should update to 10");
+    t.alike(node2.value, 20, "Node 2 should update to 20");
+    t.alike(comp.value, [10, 20], "Composite should only include the first two values");
+});
+
+// Test for object-mode Composite: keys that don't match any dependency are ignored.
+test("Composite set in object mode with non-matching keys should ignore those keys", async (t) => {
+    t.plan(2);
+    const node1 = createNode(1);
+    const node2 = createNode(2);
+    const comp = new Composite({ a: node1, b: node2 });
+
+    // Call set with a key "c" that doesn't exist in the composite.
+    comp.set({ a: 100, c: 300 });
+    await delay(50);
+
+    t.alike(node1.value, 100, "Node 'a' should update to 100");
+    t.alike(comp.value, { a: 100, b: 2 }, "Composite should ignore key 'c' and leave node 'b' unchanged");
+});

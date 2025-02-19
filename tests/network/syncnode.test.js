@@ -1,5 +1,5 @@
-import { solo, test } from "brittle";
-import { createNode } from "../../index.js";
+import { solo, test, skip } from "brittle";
+import {createComposite, createNode} from "../../index.js";
 import duplexThrough from "duplex-through";
 import {sleep} from "../helpers/sleep.js";
 import {syncNode} from "../../lib/network/syncNode.js";
@@ -127,4 +127,46 @@ test("sink mode: local receives updates only", async (t) => {
     replicatedNode.set("local change");
     await sleep(10);
     t.is(remoteNode.value, "changed");
+});
+
+test("share a composite", async (t) => {
+    const [s1, s2] = duplexThrough();
+    const helloNode = createNode("hello");
+    const worldNode = createNode("world");
+    const composite = createComposite([helloNode, worldNode]);
+
+    composite.update();
+    await sleep(10);
+
+    const { sync: remoteSync } = syncNode(composite, {
+        valueEncoding: "array(utf8)"
+    });
+
+    const { sync: localSync, node: replicatedNode } = syncNode(composite.key, {
+        valueEncoding: "array(utf8)"
+    });
+
+    await Promise.all(
+        [
+            remoteSync(s1),
+            localSync(s2)
+        ]
+    );
+
+    // await sleep(10);
+
+    t.is(composite.id, replicatedNode.id);
+    t.alike(replicatedNode.value, composite.value);
+
+    const bNode = createNode((str) => str, replicatedNode);
+    await sleep(10);
+    t.is(bNode.value.join(" "), "hello world");
+
+    composite.set("world");
+    await sleep(10);
+
+    t.is(bNode.value.join(" "), "world world");
+    replicatedNode.set(["foo", "bar"]);
+    await sleep(10);
+    t.is(bNode.value.join(" "), "foo bar");
 });

@@ -165,7 +165,6 @@ Create a graph using `createGraph()`. The **ReactiveGraph** organizes nodes, pre
   - **`toString()`**  
     Returns a human‑readable string representation of the graph (using z32‑encoded ids).
 
-
 ### Execution Node API
 
 **ExecutionNodes** extend the ReactiveNode abstraction to allow explicit control over when values are emitted. Instead of automatically propagating updates when dependencies change or when subscribers are added, an ExecutionNode only emits its value when it is explicitly triggered. This behavior applies to both computed nodes (which derive their state from dependencies) and stateful nodes (which hold a direct value).
@@ -245,10 +244,35 @@ sumNode.triggerExecution(); // Logs: "Computed sum: 30"
 - **Uniform API:**  
   The same API works for both computed and stateful nodes, letting you use execution nodes as a fundamental building block in your reactive graphs.
 
+---
 
 ### Composite Nodes
 
 Composite nodes are created using `createComposite()` and allow you to combine multiple nodes into a single reactive unit. The composite updates when any of its constituent nodes change.
+
+#### `set()` Method Behavior for Composite Nodes
+
+Composite nodes support a versatile `set()` method that updates the underlying child nodes, with behavior that varies based on the provided value type:
+
+- **Array Mode:**
+  - **Array Input:**  
+    When an array is passed to `set()`, the composite updates its child nodes by matching array indexes:
+    - **Partial Update:**  
+      If the provided array is **shorter** than the number of child nodes, only the nodes corresponding to the provided indexes are updated; the remaining nodes remain unchanged.
+    - **Extra Values:**  
+      If the provided array is **longer** than the number of child nodes, the extra values are simply ignored.
+  - **Single Value Input:**  
+    If a non-array value is passed to `set()`, every child node is updated with that same value.
+
+- **Object Mode:**
+  - **Object Input:**  
+    When an object is provided, `set()` looks for keys that match the composite’s dependencies:
+    - **Matching Keys:**  
+      For keys that correspond to a child node, the node is updated with the new value.
+    - **Non-Matching Keys:**  
+      Any keys that do not match a child node are ignored. This allows partial updates by only providing the keys you wish to change without affecting the other nodes.
+
+This flexible design is particularly useful in network-replicated scenarios where the incoming update might represent only a subset of the composite's full structure. Partial updates can be applied without errors, and extra or non-matching values are simply disregarded.
 
 ### Node Factory API
 
@@ -417,4 +441,7 @@ BREAKING CHANGE: Update node id handling to use Buffer-based keys and z32-encode
 - Removed tuple-mode custom id assignment from the API.
 - Updated all ReactiveGraph, ReactiveNode, Composite, and NodeFactory API documentation.
 - Revised tests to reflect the new id/key design and removed obsolete tuple-mode tests.
+- **Composite nodes now support partial updates in array mode via `set()`.**
+  - If the update array is shorter than the number of child nodes, only corresponding nodes are updated.
+  - If the update array is longer, extra values are ignored.
 ```
