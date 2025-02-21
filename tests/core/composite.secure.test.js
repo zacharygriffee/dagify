@@ -1,5 +1,5 @@
 import { solo, test } from "brittle";
-import { createNode } from "../../index.js";
+import { createNode } from "../../index.secure.js";
 import { Composite } from "../../lib/composite/Composite.js";
 import { interval, take } from "rxjs";
 

@@ -1,6 +1,6 @@
 import {test, skip, solo} from "brittle";
-import {createComposite} from "../../lib/composite/index.js";
-import {batch, createNode, nodeFactory} from "../../lib/node/index.js";
+import {createComposite} from "../../lib/composite/index.secure.js";
+import {batch, createNode, nodeFactory} from "../../lib/node/index.secure.js";
 import {concat, delay, firstValueFrom, interval, map, of, startWith, take, tap, toArray} from "rxjs";
 import {takeUntilCompleted} from "../../lib/util/takeUntilCompleted.js";
 import {sleep} from "../helpers/sleep.js";
@@ -801,7 +801,7 @@ test('Positional mode: add and remove dependency (single value and multiple valu
     t.is(computed.value, 1, 'After removing c and d, computed value equals 1')
 })
 
-// --- Named (object) mode tests ---
+// --- Named (object) mode old-tests ---
 
 test('Named mode: add and remove dependency (using key/value and node reference)', async t => {
     // Create three stateful nodes.
