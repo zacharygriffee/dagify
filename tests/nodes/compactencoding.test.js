@@ -1,6 +1,6 @@
 import {decoder, encoder} from "../../lib/nodes/cenc.js";
 import {test, solo,skip} from "brittle";
-import {createNode} from "../../index.js";
+import {createNode} from "../../index.secure.js";
 import cenc from "compact-encoding";
 import b4a from "b4a";
 

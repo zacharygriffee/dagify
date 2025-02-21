@@ -2,7 +2,7 @@
 import { test, solo } from 'brittle';
 import { EventEmitter } from 'eventemitter3';
 import { eventListenerNode, eventEmitterNode } from '../../lib/nodes/events.js';
-import {createNode} from "../../index.js";
+import {createNode} from "../../index.secure.js";
 import {sleep} from "../helpers/sleep.js";
 
 // Test for emitEvent: ensure that the node causes the subject to emit the correct event and value.

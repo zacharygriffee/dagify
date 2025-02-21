@@ -1,4 +1,4 @@
-import { createNode, createGraph } from "../index.js";
+import { createNode, createGraph } from "../index.secure.js";
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // --- Create Input Nodes ---
 const input1 = createNode(0);

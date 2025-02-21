@@ -1,6 +1,6 @@
 import { test, solo } from 'brittle'
-import { createNode } from '../../index.js'
-import { nodeFactory } from '../../lib/node/index.js'
+import { createNode } from '../../index.secure.js'
+import { nodeFactory } from '../../lib/node/index.unsecure.js'
 
 // --- Computed Mode Tests ---
 test('nodeFactory computed mode creates computed nodes correctly', async t => {

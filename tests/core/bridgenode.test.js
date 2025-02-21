@@ -1,5 +1,5 @@
 import { solo, test } from "brittle";
-import { createBridgeNode, createNode } from "../../index.js";
+import { createBridgeNode, createNode } from "../../index.secure.js";
 
 // Helper function for asynchronous delays.
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
