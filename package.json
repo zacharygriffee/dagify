@@ -20,7 +20,7 @@
   },
   "scripts": {
     "test": "brittle tests/**/*.test.js",
-    "bare:test": "bare tests/core/graph.test.js && bare old-tests/core/node.test.js.old && bare tests/core/composite.test.js && bare tests/core/nodefactory.test.js && bare tests/network/syncnode.test.js.skip"
+    "bare:test": "bare tests/core/graph.test.js && bare tests/core/node.secure.test.js && bare tests/core/composite.secure.test.js && bare tests/core/nodefactory.test.js"
   },
   "devDependencies": {
     "brittle": "^3.10.0",
