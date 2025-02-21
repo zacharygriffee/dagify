@@ -2,7 +2,7 @@ import {test, skip, solo} from "brittle";
 import {createComposite} from "../../lib/composite/index.unsecure.js";
 import {batch, createNode, nodeFactory} from "../../lib/node/index.unsecure.js";
 import {concat, delay, firstValueFrom, interval, map, of, startWith, take, tap, toArray} from "rxjs";
-import {takeUntilCompleted} from "../../lib/util/takeUntilCompleted.js";
+import {takeUntilCompleted} from "../../lib/operators/takeUntilCompleted.js";
 import {sleep} from "../helpers/sleep.js";
 import b4a from "b4a"; // adjust the import path as needed
 
