@@ -193,6 +193,73 @@ Dagify now includes a new IPC-inspired dispatcher module that serves as a centra
 
 This new dispatcher and event node model provides a robust, IPC-like mechanism to trigger and route events within your reactive graphs. It lays the groundwork for more advanced features (like context-based event segmentation) while keeping the API simple and consistent with Dagify’s overall design.
 
+Below is an addition you can include in your README to explain the dispatcher integration with Command Nodes:
+
+---
+
+### Dispatcher & Command Nodes
+
+Dagify now supports **Command Nodes**—specialized reactive nodes designed for processing external commands. While event nodes simply propagate payloads, command nodes go one step further: they validate, filter, and process incoming data using a custom handler, and then emit the resulting state downstream.
+
+#### Key Features
+
+- **Integrated Processing Pipeline:**  
+  Command nodes can be configured with a **validator** to ensure that only valid data is processed, a **filter** to transform incoming payloads, and a **handler** to execute your business logic. The result of the handler becomes the node’s state.
+
+- **Asynchronous Support:**  
+  Handlers can be synchronous or asynchronous. If a handler returns a Promise, the node waits for resolution before updating its state.
+
+- **Automatic Dispatcher Binding:**  
+  Command nodes are automatically bound to a dispatcher (or event router). This allows the node to be triggered whenever an external command is emitted on the network.
+
+- **Explicit Context Routing:**  
+  The command’s context (e.g. `"global"` or a custom namespace) is specified as a separate parameter—distinct from other configuration options—so that routing behavior is clear and consistent with event node creation.
+
+#### Creating a Command Node
+
+You can create and bind a Command Node using the `createCommandNode` factory function. This function automatically registers the command with the dispatcher so that when a command (e.g., `"@player/position"`) is emitted, the node is triggered with the provided payload.
+
+**Example:**
+
+```js
+import { dispatcher, CommandNode } from "dagify";
+
+// Example usage:
+
+// Define a validator to ensure the command payload conforms to the expected structure.
+// this errors if it doesn't succeed. Use filter to complete filter out payloads that don't conform
+// before it reaches the validator.
+const validator = (data) => {
+  if (typeof data.x !== "number" || typeof data.y !== "number") {
+    return { valid: false, error: new Error("Invalid vector2 format") };
+  }
+  return { valid: true };
+};
+
+// Optional map to round incoming numbers.
+const map = (data) => ({ x: Math.round(data.x), y: Math.round(data.y) });
+
+// A command handler that calculates the magnitude of a vector.
+const handler = async (data) => {
+  return Math.sqrt(data.x * data.x + data.y * data.y);
+};
+
+// Create and bind a command node for the "@player/position" command.
+const playerPositionNode = createCommandNode("@player/position", handler, { validator, map });
+
+// When the dispatcher emits the "@player/position" command with a valid payload,
+// the playerPositionNode processes the payload and its subscribers receive the computed result.
+dispatcher.emit("@player/position", { x: 3.2, y: 4.7 });
+```
+
+#### Summary
+
+By using Command Nodes together with a dispatcher, your system can:
+
+- **Validate and process external commands** before integrating them into your reactive graph.
+- **Keep business logic encapsulated** within nodes, ensuring that only valid, transformed data is propagated downstream.
+- **Maintain clear routing and modularity** via explicit command names and contexts.
+
 ---
 
 #### createExecutionNode
