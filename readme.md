@@ -119,6 +119,82 @@ A new instance of `BridgeNode`.
 
 ---
 
+### Dispatcher and Event Nodes
+
+Dagify now includes a new IPC-inspired dispatcher module that serves as a centralized event router for reactive applications. This component—often referred to as the **dispatcher** or **event dispatcher**—allows you to emit and listen for events across the entire dependency graph. In tandem with the dispatcher, the `createEventNode` function lets you create reactive event nodes that automatically update when their corresponding event is dispatched.
+
+#### Key Features
+
+- **Centralized Event Routing:**  
+  The dispatcher acts as a global router, delivering events to any node that subscribes to a specific event name. This decouples event emitters from consumers, making your architecture more modular and IPC-like.
+
+- **Context Support (Future-Proofed):**  
+  Although events are dispatched in a global context by default, the API supports an optional context parameter. This allows you to later segment events (for example, by application or graph scope) without changing how nodes subscribe to them.
+
+- **Flexible Default Values:**  
+  When creating an event node with `createEventNode`, you can provide a default value. If no event has yet been emitted, the node maintains this default state. This is useful when a node’s behavior should not be triggered until a valid event occurs.
+
+- **Seamless Integration with Computed Nodes:**  
+  Since event nodes are just reactive nodes, they can serve as dependencies for computed nodes. For example, a computed node can add a static value to the payload from an event node—even if that event carries no information (acting purely as a trigger).
+
+#### API Overview
+
+- **Dispatcher**
+
+  The dispatcher module provides a simple API to emit and subscribe to events:
+
+  ```js
+  import { dispatcher } from "dagify";
+
+  // Emit an event (optionally specifying a context)
+  dispatcher.emit("eventName", payload, "context");
+
+  // Subscribe to an event
+  dispatcher.on("eventName", (payload) => {
+    console.log("Received payload:", payload);
+  }, "context");
+  ```
+
+- **createEventNode**
+
+  The `createEventNode` function creates a reactive event node that listens for events dispatched by the dispatcher.
+
+  **Signature:**
+
+  ```js
+  createEventNode(eventName, defaultValue, context)
+  ```
+
+  **Parameters:**
+
+  - `eventName` – A string that identifies the event.
+  - `defaultValue` – (Optional) The initial value for the node if no event has been received.
+  - `context` – (Optional) The context within which the event should be listened for (defaults to `"global"`).
+
+  **Example:**
+
+  ```js
+  import { createNode, createEventNode, dispatcher } from "dagify";
+
+  // Create an event node that listens for the "hello" event.
+  const helloEvent = createEventNode("hello", 0);
+
+  // Create a computed node that uses the event node.
+  const logNode = createNode(
+    ([trigger]) => console.log("Triggered with value:", trigger),
+    [helloEvent]
+  );
+
+  // Initially, logNode sees the default value (0).
+  // When the event is dispatched, it updates:
+  dispatcher.emit("hello", 42);
+  // Expected output: "Triggered with value: 42"
+  ```
+
+This new dispatcher and event node model provides a robust, IPC-like mechanism to trigger and route events within your reactive graphs. It lays the groundwork for more advanced features (like context-based event segmentation) while keeping the API simple and consistent with Dagify’s overall design.
+
+---
+
 #### createExecutionNode
 
 Creates a new execution node that only emits values when explicitly triggered. In computed mode, the node recomputes its value only when manually triggered (or via an external execution stream), while static nodes simply emit their current value when triggered.
