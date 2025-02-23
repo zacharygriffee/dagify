@@ -4,7 +4,9 @@ import {batch, createNode, nodeFactory} from "../../lib/node/index.secure.js";
 import {concat, delay, firstValueFrom, interval, map, of, startWith, take, tap, toArray} from "rxjs";
 import {takeUntilCompleted} from "../../lib/operators/takeUntilCompleted.js";
 import {sleep} from "../helpers/sleep.js";
-import b4a from "b4a"; // adjust the import path as needed
+import b4a from "b4a";
+import {NO_EMIT} from "../../lib/node/NO_EMIT.js";
+import {CommandNode} from "../../lib/node/CommandNode.js"; // adjust the import path as needed
 
 test("each node creates a 32 byte unique identifier", t => {
    const node1 = createNode();
@@ -904,4 +906,82 @@ test("error persists even after dependency update", async t => {
 
     await x.set(10);
     t.is(z.value, undefined, "Node is in error state thus, it cannot recover.");
+});
+
+/**
+ * Test that a computed node does not emit an update when its computation returns NO_EMIT.
+ */
+test("computed node does not emit when NO_EMIT is returned", async (t) => {
+    // Create a dependency node with initial value 5.
+    const a = createNode(5);
+    // Create a computed node that returns NO_EMIT if a < 10, otherwise computes a * 2.
+    const computed = createNode(([a]) => {
+        if (a < 10) return NO_EMIT;
+        return a * 2;
+    }, [a]);
+
+    let emissions = [];
+    computed.skip.subscribe((val) => {
+        emissions.push(val);
+    });
+
+    // Allow time for the initial computation.
+    await sleep(0);
+
+    // Since the computed function returns NO_EMIT when a is 5,
+    // the computed node's value should remain undefined.
+    t.is(computed.value, undefined, "Computed node value remains undefined when NO_EMIT is returned");
+    t.is(emissions.length, 0, "No emission should occur when NO_EMIT is returned");
+
+    // Update dependency to 12; now the computation should return 12 * 2 = 24.
+    a.set(12);
+    await sleep(50);
+    t.is(computed.value, 24, "Computed node updates to 24 when dependency meets condition");
+    t.is(emissions.length, 1, "One emission should occur for the valid update");
+});
+
+/**
+ * Test that a stateful node does not update or emit when set() is called with NO_EMIT.
+ */
+test("stateful node does not emit when set() is called with NO_EMIT", async (t) => {
+    const node = createNode(100);
+    let emissions = [];
+    node.subscribe((val) => {
+        emissions.push(val);
+    });
+
+    // Call set with NO_EMIT.
+    node.set(NO_EMIT);
+    await sleep(50);
+    t.is(node.value, 100, "Stateful node value remains unchanged when set with NO_EMIT");
+    t.is(emissions.length, 1, "No additional emission should occur when NO_EMIT is used");
+});
+
+/**
+ * Test that a CommandNode does not emit when its handler returns NO_EMIT.
+ */
+test("CommandNode does not emit when handler returns NO_EMIT", async (t) => {
+    // Define a handler that returns NO_EMIT if data.skip is true.
+    const handler = (data) => {
+        if (data.skip) return NO_EMIT;
+        return data.value;
+    };
+    const cmd = new CommandNode("@test/command", handler);
+
+    let emissions = [];
+    cmd.subscribe((val) => {
+        emissions.push(val);
+    });
+
+    // Issue a command that should cause NO_EMIT.
+    cmd.set({ skip: true, value: 50 });
+    await sleep(50);
+    t.is(cmd.value, undefined, "CommandNode value remains undefined when handler returns NO_EMIT");
+    t.is(emissions.length, 0, "No emissions occur when handler returns NO_EMIT");
+
+    // Issue a valid command.
+    cmd.set({ skip: false, value: 50 });
+    await sleep(50);
+    t.is(cmd.value, 50, "CommandNode value updates to 50 when handler returns a valid value");
+    t.is(emissions.length, 1, "One emission occurs for the valid command");
 });
