@@ -985,3 +985,24 @@ test("CommandNode does not emit when handler returns NO_EMIT", async (t) => {
     t.is(cmd.value, 50, "CommandNode value updates to 50 when handler returns a valid value");
     t.is(emissions.length, 1, "One emission occurs for the valid command");
 });
+
+test("Subscriber shouldn't emit anything after initial when value is NO_EMIT", async (t) => {
+    t.plan(1);
+    const a = createNode(5);
+    const b = createNode(() => NO_EMIT, a);
+
+    b.skip.subscribe((x) => {
+        t.fail();
+    });
+    await sleep(10);
+    t.pass();
+})
+
+test("A stateful that has value NO_EMIT will not cause computed to execute", async (t) => {
+    const a = createNode(NO_EMIT);
+    const b = createNode(() => t.fail(),  a);
+
+    await sleep(10);
+    t.pass();
+})
+
