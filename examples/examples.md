@@ -1,20 +1,23 @@
-Here are simple examples for each use case to illustrate how Dagify could be applied in different scenarios:
-
----
-
 ### 🔗 1. Complex State Management (Financial Dashboard)
 
 ```js
+// Create stateful nodes for price and threshold.
 const price = createNode(100);
 const threshold = createNode(150);
-const alert = createNode(() => price.value > threshold.value);
 
-// Subscribe to trigger alerts
-alert.subscribe(value => {
-  if (value) console.log("Price threshold reached!");
+// Create a computed node that checks if the price exceeds the threshold.
+// The computation function receives an array [price, threshold] from its dependencies.
+const alert = createNode(
+  ([currentPrice, currentThreshold]) => currentPrice > currentThreshold,
+  [price, threshold]
+);
+
+// Subscribe to the alert node. When the computed value is true, trigger an alert.
+alert.subscribe(isOver => {
+  if (isOver) console.log("Price threshold reached!");
 });
 
-// Simulate price change
+// Simulate a price change.
 price.set(160); // Logs: "Price threshold reached!"
 ```
 
@@ -23,12 +26,24 @@ price.set(160); // Logs: "Price threshold reached!"
 ### 🎨 2. Visual Node-Based Editor (Workflow Automation)
 
 ```js
+// A node representing the completion of a data fetch.
 const fetchData = createNode("Data fetched");
-const processData = createNode(() => `${fetchData.value} processed`);
-const sendEmail = createNode(() => `Email sent with: ${processData.value}`);
 
-// Subscriptions for action completion
-sendEmail.subscribe(console.log); // Logs: "Email sent with: Data fetched processed"
+// A computed node that processes the fetched data.
+const processData = createNode(
+  ([data]) => `${data} processed`,
+  [fetchData]
+);
+
+// A computed node that represents sending an email with the processed data.
+const sendEmail = createNode(
+  ([processedData]) => `Email sent with: ${processedData}`,
+  [processData]
+);
+
+// Subscribe to the sendEmail node to log the final output.
+sendEmail.subscribe(console.log); 
+// Logs: "Email sent with: Data fetched processed"
 ```
 
 ---
@@ -36,14 +51,22 @@ sendEmail.subscribe(console.log); // Logs: "Email sent with: Data fetched proces
 ### 🔄 3. Reactive Command Dispatch System
 
 ```js
+// A stateful node representing user input.
 const userInput = createNode("initial input");
-const validateInput = createNode(() => userInput.value.length > 5);
-const dispatchCommand = createNode(() => {
-  if (validateInput.value) return `Command sent: ${userInput.value}`;
-  return "Validation failed";
-});
 
-// Subscribing to command execution
+// A computed node that validates the user input (e.g., checking input length).
+const validateInput = createNode(
+  ([input]) => input.length > 5,
+  [userInput]
+);
+
+// A computed node that dispatches a command based on the user input and its validation.
+const dispatchCommand = createNode(
+  ([input, isValid]) => isValid ? `Command sent: ${input}` : "Validation failed",
+  [userInput, validateInput]
+);
+
+// Subscribe to the dispatchCommand node to see the command result.
 dispatchCommand.subscribe(console.log);
 
 userInput.set("short");        // Logs: "Validation failed"
@@ -55,10 +78,16 @@ userInput.set("long enough");  // Logs: "Command sent: long enough"
 ### ⚛️ 4. Reactive UI Component State
 
 ```js
+// A stateful node representing a counter.
 const counter = createNode(0);
-const doubleCounter = createNode(() => counter.value * 2);
 
-// Simulate component reaction
+// A computed node that doubles the counter's value.
+const doubleCounter = createNode(
+  ([count]) => count * 2,
+  [counter]
+);
+
+// Subscribe to doubleCounter to log updates.
 doubleCounter.subscribe(value => console.log(`Double count: ${value}`));
 
 counter.set(1); // Logs: "Double count: 2"
@@ -70,11 +99,22 @@ counter.set(5); // Logs: "Double count: 10"
 ### 🗂️ 5. Data Transformation Pipeline (IoT Data Stream)
 
 ```js
+// A stateful node with raw data.
 const rawData = createNode([1, 2, 3]);
-const filteredData = createNode(() => rawData.value.filter(n => n > 1));
-const sumData = createNode(() => filteredData.value.reduce((a, b) => a + b, 0));
 
-// Reactive output
+// A computed node that filters the raw data.
+const filteredData = createNode(
+  ([data]) => data.filter(n => n > 1),
+  [rawData]
+);
+
+// A computed node that sums the filtered data.
+const sumData = createNode(
+  ([filtered]) => filtered.reduce((sum, n) => sum + n, 0),
+  [filteredData]
+);
+
+// Subscribe to sumData to log the result.
 sumData.subscribe(sum => console.log(`Sum of filtered data: ${sum}`));
 
 rawData.set([2, 3, 4]); // Logs: "Sum of filtered data: 9"
@@ -85,11 +125,17 @@ rawData.set([2, 3, 4]); // Logs: "Sum of filtered data: 9"
 ### 📈 6. Reactive Form Validation
 
 ```js
+// Stateful nodes for form fields.
 const email = createNode("");
 const password = createNode("");
-const isFormValid = createNode(() => email.value.includes("@") && password.value.length >= 6);
 
-// React to form validation state
+// A computed node that determines if the form is valid.
+const isFormValid = createNode(
+  ([emailValue, passwordValue]) => emailValue.includes("@") && passwordValue.length >= 6,
+  [email, password]
+);
+
+// Subscribe to log the validation state.
 isFormValid.subscribe(valid => console.log(`Form valid: ${valid}`));
 
 email.set("test@example.com");
@@ -101,11 +147,17 @@ password.set("123456"); // Logs: "Form valid: true"
 ### 🧮 7. Computation Caching System
 
 ```js
+// Stateful nodes for base value and multiplier.
 const baseValue = createNode(10);
 const multiplier = createNode(2);
-const result = createNode(() => baseValue.value * multiplier.value);
 
-// React to changes efficiently
+// A computed node that multiplies the base value by the multiplier.
+const result = createNode(
+  ([base, mult]) => base * mult,
+  [baseValue, multiplier]
+);
+
+// Subscribe to log the computed result.
 result.subscribe(res => console.log(`Result: ${res}`));
 
 multiplier.set(5); // Logs: "Result: 50"
@@ -116,20 +168,22 @@ multiplier.set(5); // Logs: "Result: 50"
 ### 🔐 8. Access Control System (RBAC Example)
 
 ```js
+// A stateful node representing a user's role.
 const userRole = createNode("user");
-const permissions = createNode(() => {
-  if (userRole.value === "admin") return ["read", "write", "delete"];
-  if (userRole.value === "editor") return ["read", "write"];
-  return ["read"];
-});
 
-// Log permission changes reactively
+// A computed node that derives permissions based on the userRole.
+const permissions = createNode(
+  ([role]) => {
+    if (role === "admin") return ["read", "write", "delete"];
+    if (role === "editor") return ["read", "write"];
+    return ["read"];
+  },
+  [userRole]
+);
+
+// Subscribe to log permission changes.
 permissions.subscribe(perms => console.log(`Permissions: ${perms.join(", ")}`));
 
 userRole.set("editor"); // Logs: "Permissions: read, write"
 userRole.set("admin");  // Logs: "Permissions: read, write, delete"
 ```
-
----
-
-These examples focus on showing reactivity and dependency management in simple terms, using `createNode`, `set`, and subscriptions to reflect updates.
