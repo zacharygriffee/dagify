@@ -1,7 +1,7 @@
 import { test, solo } from "brittle";
 import { CommandNode } from "../../lib/node/CommandNode.js"; // Adjust path as needed
 import { sleep } from "../helpers/sleep.js";
-import {createNode} from "../../lib/node/entry.js";
+import {createNode, NO_EMIT} from "../../lib/node/entry.js";
 
 // Test: CommandNode processes valid synchronous data.
 test("CommandNode processes valid synchronous data", (t) => {
@@ -95,4 +95,22 @@ test("CommandNode use in computed", async (t) => {
     cmd.next({value: 4});
     await sleep(0);
     t.is(node.value, 16);
+});
+
+test("A command node that returns NO_EMIT should not trigger", async t => {
+    const cmd = new CommandNode("@test/command", () => NO_EMIT);
+    cmd.subscribe(val => {
+        t.fail();
+    })
+    cmd.next("whatever");
+    await sleep(100);
+});
+
+test("A computed that has a dep of command node that returns NO_EMIT should not trigger", async t => {
+    const cmd = new CommandNode("@test/command", () => NO_EMIT);
+    createNode(x => {
+        t.fail();
+    }, cmd);
+    cmd.next("whatever");
+    await sleep(100);
 });

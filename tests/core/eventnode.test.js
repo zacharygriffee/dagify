@@ -1,15 +1,15 @@
 import {solo, test} from "brittle";
 import {sleep} from "../helpers/sleep.js";
-import {createEventNode, createNode, dispatcher} from "../../lib/node/index.secure.js"; // Our new
+import {createEventNode, createNode, dispatcher, NO_EMIT} from "../../lib/node/index.secure.js"; // Our new
 
 test("createEventNode initializes with default value if provided", t => {
     const eventNode = createEventNode("hello", "default");
     t.is(eventNode.value, "default", "Event node should initialize with the provided default value");
 });
 
-test("createEventNode initializes with undefined if no default is provided", t => {
+test("createEventNode initializes with NO_EMIT if no default is provided", t => {
     const eventNode = createEventNode("hello");
-    t.is(eventNode.value, undefined, "Event node should initialize as undefined when no default is provided");
+    t.ok(eventNode.value === NO_EMIT, "Event node should initialize as undefined when no default is provided");
 });
 
 test("createEventNode updates its value on global event emission", async t => {

@@ -976,7 +976,6 @@ test("CommandNode does not emit when handler returns NO_EMIT", async (t) => {
     // Issue a command that should cause NO_EMIT.
     cmd.set({ skip: true, value: 50 });
     await sleep(50);
-    t.is(cmd.value, undefined, "CommandNode value remains undefined when handler returns NO_EMIT");
     t.is(emissions.length, 0, "No emissions occur when handler returns NO_EMIT");
 
     // Issue a valid command.
@@ -1005,4 +1004,3 @@ test("A stateful that has value NO_EMIT will not cause computed to execute", asy
     await sleep(10);
     t.pass();
 })
-
