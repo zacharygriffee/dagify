@@ -1,7 +1,7 @@
 import { test, solo } from "brittle";
 import { Subject } from "rxjs";
-import { createNode } from "../../index.secure.js";
-import { ExecutionNode } from "../../lib/node/ExecutionNode.js";
+import { createNode } from "../../index.js";
+import { ExecutionNode } from "../../lib/execution-node/ExecutionNode.js";
 import { sleep } from "../helpers/sleep.js";
 
 // ===== ExecutionNode Stateful Tests =====

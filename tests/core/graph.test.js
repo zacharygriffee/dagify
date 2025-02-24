@@ -1,5 +1,5 @@
 import { solo, test } from "brittle";
-import { createGraph, createNode } from "../../index.secure.js";
+import { createGraph, createNode } from "../../index.js";
 import z32 from "z32";
 
 test("graph uses node keys correctly", async (t) => {

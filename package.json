@@ -1,33 +1,29 @@
 {
   "name": "dagify",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Dagify is a JavaScript library designed for building and managing reactive dependency graphs. It enables developers to create dynamic, interconnected data flows with support for computed nodes, shallow reactive nodes, manual execution, and network synchronization. With its composable API, Dagify makes it easy to construct complex reactive systems, perform batched updates, and maintain consistent state across distributed applications.",
   "main": "index.secure.js",
   "type": "module",
   "exports": {
-    ".": "./index.secure.js",
-    "./unsecure": "./index.unsecure.js",
-    "./secure": "./index.secure.js",
-    "./nodes": "./lib/nodes/index.js",
-    "./node": "./lib/node/index.secure.js",
-    "./secure/node": "./lib/node/index.secure.js",
-    "./unsecure/node": "./lib/node/index.unsecure.js",
+    ".": "./index.js",
+    "./node": "./lib/node/index.js",
     "./graph": "./lib/graph/index.js",
     "./composite": "./lib/composite/index.js",
-    "./secure/composite": "./lib/composite/index.js",
-    "./unsecure/composite": "./lib/composite/index.unsecure.js",
+    "./execution": "./lib/execution-node/index.js",
+    "./command": "./lib/command-node/index.js",
+    "./bridge": "./lib/bridge-node/index.js",
+    "./shallow": "./lib/shallow-node/index.js",
+    "./event": "./lib/event-node/index.js",
+    "./dispatcher": "./lib/dispatcher/index.js",
     "./operators": "./lib/operators/index.js"
   },
   "scripts": {
     "test": "brittle tests/**/*.test.js",
-    "bare:test": "bare tests/core/graph.test.js && bare tests/core/node.secure.test.js && bare tests/core/composite.secure.test.js && bare tests/core/nodefactory.test.js && bare tests/core/eventnode.test.js"
+    "bare:test": "bare tests/core/graph.test.js && bare tests/core/node.test.js && bare tests/core/composite.test.js && bare tests/core/nodefactory.test.js && bare tests/core/eventnode.test.js"
   },
   "devDependencies": {
     "brittle": "^3.10.0",
-    "duplex-through": "^1.0.2",
-    "eventemitter3": "^5.0.1",
-    "operator-pipeline": "^1.0.6",
-    "random-access-memory": "^6.2.1"
+    "eventemitter3": "^5.0.1"
   },
   "keywords": [
     "reactivity",
@@ -45,7 +41,6 @@
   "dependencies": {
     "b4a": "^1.6.7",
     "compact-encoding": "^2.16.0",
-    "hypercore-crypto": "^3.5.0",
     "tiny-buffer-map": "^1.1.1",
     "z32": "^1.1.0"
   }

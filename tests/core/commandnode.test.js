@@ -1,7 +1,7 @@
 import { test, solo } from "brittle";
-import { CommandNode } from "../../lib/node/CommandNode.js"; // Adjust path as needed
+import { CommandNode } from "../../lib/command-node/CommandNode.js"; // Adjust path as needed
 import { sleep } from "../helpers/sleep.js";
-import {createNode, NO_EMIT} from "../../lib/node/entry.js";
+import {createNode, NO_EMIT} from "../../lib/node/index.js";
 
 // Test: CommandNode processes valid synchronous data.
 test("CommandNode processes valid synchronous data", (t) => {

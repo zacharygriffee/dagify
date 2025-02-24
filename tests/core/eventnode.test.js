@@ -1,6 +1,7 @@
 import {solo, test} from "brittle";
 import {sleep} from "../helpers/sleep.js";
-import {createEventNode, createNode, dispatcher, NO_EMIT} from "../../lib/node/index.secure.js"; // Our new
+import {createNode, dispatcher, NO_EMIT} from "../../lib/node/index.js";
+import {createEventNode} from "../../lib/event/event-node.js"; // Our new
 
 test("createEventNode initializes with default value if provided", t => {
     const eventNode = createEventNode("hello", "default");
