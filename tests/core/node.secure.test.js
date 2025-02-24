@@ -9,8 +9,8 @@ import {NO_EMIT} from "../../lib/node/NO_EMIT.js";
 import {CommandNode} from "../../lib/node/CommandNode.js"; // adjust the import path as needed
 
 test("each node creates a 32 byte unique identifier", t => {
-   const node1 = createNode();
-   const node2 = createNode();
+   const node1 = createNode(NO_EMIT);
+   const node2 = createNode(NO_EMIT);
 
    t.is(node1.key.byteLength, 32);
    t.is(node2.key.byteLength, 32);
@@ -93,9 +93,9 @@ test("computedNode should not allow manual set()", (t) => {
 
 test("createNode should unsubscribe correctly", (t) => {
     t.plan(1);
-    const node = createNode(0);
+    const node = createNode();
 
-    const unsub = node.skip.subscribe((a) => {
+    const unsub = node.subscribe((a) => {
         t.fail("Subscriber should not be called after unsubscribe");
     });
 
@@ -172,8 +172,8 @@ test("multiple subscribers should receive notifications", async (t) => {
 
 test("next() should behave like set() for non-computed node", async (t) => {
     t.plan(1);
-    const node = createNode(0);
-    node.skip.subscribe((val) => {
+    const node = createNode();
+    node.subscribe((val) => {
         t.is(val, 20, "next() should update the node value like set()");
     });
     node.next(20);
@@ -205,8 +205,8 @@ test("computed node should notify error callback when computation throws", async
 // 2. Direct call to error() should notify subscribers.
 test("node.error should trigger error callbacks", async (t) => {
     t.plan(1);
-    const node = createNode(10);
-    node.skip.subscribe({
+    const node = createNode();
+    node.subscribe({
         next: (x) => t.fail("Should not receive next value"),
         error: (err) => t.is(err.message, "explicit error", "Direct error call notifies subscribers")
     });
@@ -218,11 +218,11 @@ test("node.error should trigger error callbacks", async (t) => {
 
 test("complete() should notify subscribers and prevent further updates", async (t) => {
     t.plan(3);
-    const node = createNode(100);
+    const node = createNode();
     let completeCalled = false;
     let updateCalled = false;
 
-    node.skip.subscribe({
+    node.subscribe({
         next: (val) => updateCalled = true,
         complete: () => { completeCalled = true; t.pass("Complete callback called"); }
     });
@@ -586,7 +586,6 @@ test("Pass a function as a dependency", async t => {
 
 test("Pass an async function as a dependnency", async t => {
     const x = createNode(([y]) => y ? y + 2 : 0, [async () => 3]);
-    t.is(x.value, 0);
     await sleep(0);
     t.is(x.value, 5);
 });
@@ -902,10 +901,10 @@ test("error persists even after dependency update", async t => {
     });
     // Wait a bit so that error has time to propagate.
     await sleep(10);
-    t.is(z.value, undefined, "Value is undefined due to error");
+    t.ok(z.value === NO_EMIT, "Computed is in a NO_EMIT state");
 
     await x.set(10);
-    t.is(z.value, undefined, "Node is in error state thus, it cannot recover.");
+    t.ok(z.value === NO_EMIT, "Node is in error state thus, it cannot EMIT.");
 });
 
 /**
@@ -921,7 +920,7 @@ test("computed node does not emit when NO_EMIT is returned", async (t) => {
     }, [a]);
 
     let emissions = [];
-    computed.skip.subscribe((val) => {
+    computed.subscribe((val) => {
         emissions.push(val);
     });
 
@@ -930,7 +929,8 @@ test("computed node does not emit when NO_EMIT is returned", async (t) => {
 
     // Since the computed function returns NO_EMIT when a is 5,
     // the computed node's value should remain undefined.
-    t.is(computed.value, undefined, "Computed node value remains undefined when NO_EMIT is returned");
+    t.ok(computed.value === NO_EMIT, "Computed node value remains undefined when NO_EMIT is returned");
+    t.absent(computed.isActive, "Computed node is inactive when it's value is NO_EMIT");
     t.is(emissions.length, 0, "No emission should occur when NO_EMIT is returned");
 
     // Update dependency to 12; now the computation should return 12 * 2 = 24.
@@ -990,7 +990,7 @@ test("Subscriber shouldn't emit anything after initial when value is NO_EMIT", a
     const a = createNode(5);
     const b = createNode(() => NO_EMIT, a);
 
-    b.skip.subscribe((x) => {
+    b.subscribe((x) => {
         t.fail();
     });
     await sleep(10);

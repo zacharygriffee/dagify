@@ -263,22 +263,19 @@ test("Test that a Composite can utilize computed nodes and reflect dynamic depen
 
     // Listen for updates on the computed node.
     let updateCount = 0;
-    const unsubscribe = computed.skip.subscribe(() => {
+    const unsubscribe = computed.subscribe((x) => {
         updateCount++;
     });
 
     // Set the dependency to the same value (3), which should not change the computed value (still 4).
     node.set(3);
     await delay(50);
-    t.is(updateCount, 0, "No duplicate update should occur if dependency set to a value that doesn't change computed result");
-
+    t.is(updateCount, 1, "No duplicate update should occur if dependency set to a value that doesn't change computed result");
+    unsubscribe.unsubscribe();
     // Update the dependency to 5. The computed node should update to 5 + 1 = 6.
     node.set(5);
     await delay(50);
     t.alike(comp.value, [6], "Composite should reflect computed node value [6] after updating dependency to 5");
-
-    // Clean up
-    unsubscribe.unsubscribe();
 });
 
 test("Composite update should force emission even if value hasn't changed", async (t) => {

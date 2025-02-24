@@ -35,7 +35,7 @@ test("Bridge node subscription receives updates", async t => {
     const bridgeNode = createBridgeNode(x, z);
 
     let updates = [];
-    const unsub = bridgeNode.skip.subscribe(val => {
+    const unsub = bridgeNode.subscribe(val => {
         updates.push(val);
     });
 
