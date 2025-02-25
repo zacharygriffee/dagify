@@ -161,7 +161,7 @@ test("CommandNode with disableBatching through computed", async t => {
     comp.unsubscribe();
 });
 
-solo("CommandNode with disableBatching through computed via event", async t => {
+test("CommandNode with disableBatching through computed via event", async t => {
     const results = ["hello", "world"];
     const cmd = createCommandNode("@test/command", a => a, { disableBatching: true });
     const comp = createNode(a => t.is(a, results.shift()), cmd, { disableBatching: true });
