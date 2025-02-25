@@ -1,6 +1,6 @@
 {
   "name": "dagify",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "Dagify is a JavaScript library designed for building and managing reactive dependency graphs. It enables developers to create dynamic, interconnected data flows with support for computed nodes, shallow reactive nodes, manual execution, and network synchronization. With its composable API, Dagify makes it easy to construct complex reactive systems, perform batched updates, and maintain consistent state across distributed applications.",
   "main": "index.secure.js",
   "type": "module",
@@ -15,6 +15,7 @@
     "./shallow": "./lib/shallow-node/index.js",
     "./event": "./lib/event-node/index.js",
     "./dispatcher": "./lib/dispatcher/index.js",
+    "./filter": "./lib/filter-node/index.js",
     "./operators": "./lib/operators/index.js"
   },
   "scripts": {
