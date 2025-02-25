@@ -1,11 +1,10 @@
-import { test, skip, solo } from "brittle";
-import { createComposite } from "../../lib/composite/index.js";
-import { batch, createNode, nodeFactory } from "../../lib/node/index.js";
-import { concat, delay, firstValueFrom, interval, map, of, startWith, take, tap, toArray } from "rxjs";
-import { sleep } from "../helpers/sleep.js";
+import {test} from "brittle";
+import {createComposite} from "../../lib/composite/index.js";
+import {batch, createNode, nodeFactory} from "../../lib/node/index.js";
+import {concat, delay, firstValueFrom, map, of, take, toArray} from "rxjs";
+import {sleep} from "../helpers/sleep.js";
 import b4a from "b4a";
-import { NO_EMIT } from "../../lib/node/NO_EMIT.js";
-import { CommandNode } from "../../lib/command-node/CommandNode.js";
+import {NO_EMIT} from "../../lib/node/NO_EMIT.js";
 
 /* --------------------------------------------------------------------------
    Helpers

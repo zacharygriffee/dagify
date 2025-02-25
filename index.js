@@ -1,4 +1,4 @@
-import "./lib/crypto/keyGenerator.js";
+import "./lib/node/key-management/defaultKeyGenerator.js";
 export * from "./lib/node/index.js";
 export * from "./lib/graph/index.js";
 export * from "./lib/composite/index.js";
