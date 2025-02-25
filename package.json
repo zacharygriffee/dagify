@@ -23,7 +23,8 @@
   },
   "devDependencies": {
     "brittle": "^3.10.0",
-    "eventemitter3": "^5.0.1"
+    "eventemitter3": "^5.0.1",
+    "rxjs": "^7.8.2"
   },
   "keywords": [
     "reactivity",
