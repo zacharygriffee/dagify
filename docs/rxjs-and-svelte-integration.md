@@ -96,6 +96,8 @@ count.set(3); // Logs: Double count: 6
 
 In your Svelte component, you can treat a ReactiveNode as a store:
 
+[See example at svelte playground](https://svelte.dev/playground/1ef1e2c2f71a4738836a75ccd29464ef?version=5.20.4)
+
 ```svelte
 <script>
   import { createNode } from 'dagify';
