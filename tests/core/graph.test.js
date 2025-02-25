@@ -1,6 +1,6 @@
 import { solo, test } from "brittle";
 import { createGraph, createNode } from "../../index.js";
-import z32 from "z32";
+import * as z32 from "../../lib/util/z32.js";
 
 test("graph uses node keys correctly", async (t) => {
     const graph = createGraph();
