@@ -114,3 +114,18 @@ test("A computed that has a dep of command node that returns NO_EMIT should not 
     cmd.next("whatever");
     await sleep(100);
 });
+
+
+test("CommandNode does not emit when handler returns NO_EMIT", async t => {
+    const handler = data => (data.skip ? NO_EMIT : data.value);
+    const cmd = new CommandNode("@test/command", handler);
+    let emissions = [];
+    cmd.subscribe(val => emissions.push(val));
+    cmd.set({ skip: true, value: 50 });
+    await sleep(50);
+    t.is(emissions.length, 0, "No emission when handler returns NO_EMIT");
+    cmd.set({ skip: false, value: 50 });
+    await sleep(50);
+    t.is(cmd.value, 50, "CommandNode updates with valid command");
+    t.is(emissions.length, 1, "One valid emission occurred");
+});

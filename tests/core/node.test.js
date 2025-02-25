@@ -411,20 +411,6 @@ test("stateful node does not emit when set() is called with NO_EMIT", async t =>
     t.is(emissions.length, 1, "No additional emission occurred");
 });
 
-test("CommandNode does not emit when handler returns NO_EMIT", async t => {
-    const handler = data => (data.skip ? NO_EMIT : data.value);
-    const cmd = new CommandNode("@test/command", handler);
-    let emissions = [];
-    cmd.subscribe(val => emissions.push(val));
-    cmd.set({ skip: true, value: 50 });
-    await sleep(50);
-    t.is(emissions.length, 0, "No emission when handler returns NO_EMIT");
-    cmd.set({ skip: false, value: 50 });
-    await sleep(50);
-    t.is(cmd.value, 50, "CommandNode updates with valid command");
-    t.is(emissions.length, 1, "One valid emission occurred");
-});
-
 test("Subscriber does not emit anything after initial when value is NO_EMIT", async t => {
     t.plan(1);
     const a = createNode(5);
@@ -511,6 +497,20 @@ test("unbatched getter reflects disableBatching flag", t => {
     t.ok(computed1.unbatched, "unbatched is true when disableBatching is set");
     const computed2 = createNode(([val]) => val + 1, [dep]);
     t.absent(computed2.unbatched, "unbatched is false by default");
+});
+
+test("unbatched receives every single change", async t => {
+    const dep = createNode(undefined, {disableBatching: true});
+    const result = [];
+
+    createNode(n => result.push(n), dep, { disableBatching: true });
+
+    dep.set(1);
+    dep.set(2);
+    dep.set(3);
+    dep.set(7);
+    dep.set(12);
+    t.alike(result, [1,2,3,7,12]);
 });
 
 /* --------------------------------------------------------------------------
