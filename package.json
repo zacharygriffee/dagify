@@ -42,7 +42,6 @@
   "license": "MIT",
   "dependencies": {
     "b4a": "^1.6.7",
-    "compact-encoding": "^2.16.0",
     "tiny-buffer-map": "^1.1.1"
   }
 }
