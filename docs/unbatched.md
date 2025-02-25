@@ -1,7 +1,3 @@
-Here’s a **Markdown API documentation** for the `unbatched` configuration in your Dagify library:
-
----
-
 # 📘 **Dagify Unbatched API**
 
 ## Overview

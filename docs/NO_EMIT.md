@@ -1,7 +1,3 @@
-Here’s a **Markdown documentation** for the `NO_EMIT` feature in your **Dagify** library:
-
----
-
 # 🚫 **Dagify NO_EMIT Documentation**
 
 ## 🔍 **Overview**
@@ -130,7 +126,3 @@ node2.set(2); // Emits [1, 2]
 
 - A node explicitly set to `undefined` (e.g., `node.set(undefined)`) **will emit** `undefined`. Only the initial `undefined` or `null` values default to `NO_EMIT`.
 - If `NO_EMIT` is set on a critical dependency, any downstream computations relying on that node will be blocked until a valid value is provided.
-
----
-
-Let me know if you'd like to dive deeper into how `NO_EMIT` interacts with specific node types or advanced async scenarios! 🚀
