@@ -71,15 +71,18 @@ Use `createGraph` to initialize a reactive dependency graph for managing multipl
 #### Example
 
 ```js
-import { createGraph } from 'dagify';
+import { createGraph, createNode } from 'dagify';
 
 // Create a new graph
 const graph = createGraph();
 
 // Add nodes to the graph
-const nodeA = graph.createNode(10);
-const nodeB = graph.createNode(20);
-const nodeSum = graph.createNode(([a, b]) => a + b, [nodeA, nodeB]);
+const nodeA = createNode(10);
+const nodeB = createNode(20);
+const nodeSum = createNode(([a, b]) => a + b);
+
+graph.addNodes([nodeA, nodeB, nodeSum]);
+graph.connect([nodeA, nodeB], nodeSum);
 
 // Subscribe to the sum node
 nodeSum.subscribe(value => {
