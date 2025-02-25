@@ -229,20 +229,6 @@ You are an AI tasked with learning and demonstrating the use of Dagify, a reacti
   }
   ```
 
-### 9. (Optional) Network Synchronization
-- **Task:**  
-  Explore how to use `syncNode` and the associated encoder utility for network synchronization.
-
-- **Instructions:**
-    - Create a node.
-    - Wrap it with `syncNode` to prepare it for network replication.
-    - Read the documentation for details on RPC handshake and modes.
-
-- **Reflection:**  
-  Explain how network synchronization might be used in a distributed reactive system.
-
----
-
 **Final Reflection:**  
 At the end of this tutorial, summarize what you learned about Dagify. Describe how the various components (nodes, composites, graphs, advanced nodes, and utilities) work together to create robust reactive systems. Provide insights into potential applications and any challenges you foresee when integrating Dagify into larger projects.
 
