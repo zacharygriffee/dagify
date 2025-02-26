@@ -1,4 +1,3 @@
-import "./lib/node/key-management/defaultKeyGenerator.js";
 export * from "./lib/node/index.js";
 export * from "./lib/graph/index.js";
 export * from "./lib/composite/index.js";
@@ -9,3 +8,4 @@ export * from "./lib/execution-node/index.js";
 export * from "./lib/bridge-node/index.js";
 export * from "./lib/shallow-node/index.js";
 export * from "./lib/filter-node/index.js";
+export * from "./lib/trigger/index.js";

@@ -1,7 +1,7 @@
 import {test, solo} from "brittle";
 import {createComposite} from "../../lib/composite/index.js";
 import {batch, createNode, nodeFactory} from "../../lib/node/index.js";
-import {concat, delay, firstValueFrom, map, of, take, toArray} from "rxjs";
+import {concat, delay, firstValueFrom, map, of, Subject, take, toArray} from "rxjs";
 import {sleep} from "../helpers/sleep.js";
 import b4a from "b4a";
 import {NO_EMIT} from "../../lib/node/NO_EMIT.js";
@@ -679,3 +679,53 @@ test("Add dependency if dependency is singular should error use setDependencies 
     await sleep();
     t.is(computed.value, 4);
 });
+
+test("Ensure that rxjs observable can cause triggers", async t => {
+    const obs = new Subject();
+
+    const comp = createNode(([x]) => {
+        return x + x;
+    }, [obs]);
+
+    obs.next(5);
+
+    await sleep();
+    t.is(comp.value, 10);
+    obs.next(10);
+    await sleep();
+    t.is(comp.value, 20);
+});
+
+test("Ensure that rxjs observable can cause triggers in async computed", async t => {
+    const obs = new Subject();
+
+    const comp = createNode(async ([x]) => {
+        return x + x;
+    }, [obs]);
+
+    obs.next(5);
+
+    await sleep();
+    t.is(comp.value, 10);
+    obs.next(10);
+    await sleep();
+    t.is(comp.value, 20);
+});
+
+// solo("Ensure that rxjs observable can cause triggers indirectly", async t => {
+//     let num = 0;
+//     const obs = new Subject();
+//
+//     const comp = createNode(async () => {
+//         return num + num;
+//     }, [obs]);
+//
+//     num = 5;
+//     obs.next();
+//     await sleep();
+//     t.is(comp.value, 10);
+//     num = 10;
+//     obs.next();
+//     await sleep();
+//     t.is(comp.value, 20);
+// });
