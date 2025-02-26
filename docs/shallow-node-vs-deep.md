@@ -168,7 +168,3 @@ import { createShallowNode, createNode } from "dagify";
 const count = createNode(0);
 const double = createShallowNode(() => ({ value: count.value * 2 }), [count]);
 ```
-
----
-
-This should now cover **all behaviors**, including computed nodes! Let me know if you'd like to refine it further.
