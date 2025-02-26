@@ -1,8 +1,10 @@
 import {solo, test} from "brittle";
-import { createTrigger, trigger } from "../../lib/trigger/index.js";
-import { createNode } from "../../lib/node/index.js";
+import {createNode} from "../../lib/node/index.js";
 import {Subject, interval, fromEvent, of, take} from "rxjs";
-import { sleep } from "../helpers/sleep.js";
+import {sleep} from "../helpers/sleep.js";
+import {createTrigger, triggerFromEvent} from "../../lib/trigger/index.js";
+import {trigger} from "../../lib/trigger/trigger.js";
+import EventEmitter from "eventemitter3";
 
 /* --------------------------------------------------------------------------
    ✅ Basic Trigger Tests
@@ -67,7 +69,8 @@ test("trigger() works with fromEvent", async t => {
             setTimeout(() => handler(), 10);
             setTimeout(() => handler(), 20);
         },
-        removeEventListener: () => {}
+        removeEventListener: () => {
+        }
     };
 
     const event$ = fromEvent(mockElement, "testEvent");
@@ -128,6 +131,62 @@ test("trigger() rejects ReactiveNodes as sources", t => {
 test("trigger() rejects invalid input types", t => {
     t.exception(() => trigger(42), "trigger() should throw when given a number");
     t.exception(() => trigger("not an observable"), "trigger() should throw when given a string");
-    t.exception(() => trigger({ event: 123 }), "trigger() should throw when given an object with invalid values");
+    t.exception(() => trigger({event: 123}), "trigger() should throw when given an object with invalid values");
     t.exception(() => trigger(null), "trigger() should throw when given null");
+});
+
+test('calls trigger when source is an EventEmitter', async t => {
+    const values = [];
+    const ee = new EventEmitter();
+    const trigger = triggerFromEvent(ee, "hello");
+    const sub = trigger.subscribe(value => values.push(value));
+
+    ee.emit("hello");
+    ee.emit("hello");
+
+    t.alike(values, [1, 2]);
+    sub.unsubscribe();
+    t.is(ee.listenerCount("hello"), 0);
+    const sub2 = trigger.subscribe(value => t.is(value, 0, "If listeners went to 0, reactivation of the trigger starts from zero"));
+    ee.emit("hello");
+    sub2.unsubscribe();
+    t.is(ee.listenerCount("hello"), 0);
+});
+
+test('calls trigger when source is an EventTarget', t => {
+    t.plan(1);
+    let listenerCount = 0;
+    const mockEventTarget = {
+        handler: undefined,
+        name: undefined,
+        addEventListener(name, _handler) {
+            this.name = name;
+            this.handler = _handler;
+            listenerCount++;
+        },
+        removeEventListener() {
+            this.handler = null;
+            listenerCount--;
+        },
+        dispatchEvent(name) {
+            if (name === this.name) this.handler({data: undefined});
+        }
+    };
+
+    const trigger = triggerFromEvent(mockEventTarget, "hello");
+
+    const sub = trigger.subscribe(event => {
+        t.is(event, 1, "EventTarget emits properly");
+    });
+
+    mockEventTarget.dispatchEvent("hello");
+    sub.unsubscribe();
+});
+
+test('throws an error when source is neither an EventEmitter nor an EventTarget', t => {
+    const notAnEventSource = {};
+
+    t.exception(() => {
+        triggerFromEvent(notAnEventSource, 'someEvent');
+    }, /triggerFromEvent must be an EventEmitter or event target./, 'Expected error to be thrown for invalid source');
 });

@@ -9,3 +9,5 @@ export * from "./lib/bridge-node/index.js";
 export * from "./lib/shallow-node/index.js";
 export * from "./lib/filter-node/index.js";
 export * from "./lib/trigger/index.js";
+export {createTrigger} from "./lib/trigger/createTrigger.js";
+export {trigger} from "./lib/trigger/trigger.js";
