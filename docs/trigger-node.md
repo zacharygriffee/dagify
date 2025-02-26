@@ -11,11 +11,11 @@ The `trigger` function wraps **event-based sources** (such as RxJS Observables) 
 
 #### Parameters:
 - **`sources`** *(Observable | Observable[] | Record<string, Observable>)*:
-    - A single RxJS `Observable`,
-    - An array of `Observables`, or
-    - An object mapping keys to `Observables`.
+  - A single RxJS `Observable`,
+  - An array of `Observables`, or
+  - An object mapping keys to `Observables`.
 - **`config`** *(Object, optional)*:
-    - `{ disableBatching: boolean }` *(default: `true`)*: Disables batching so updates happen immediately.
+  - `{ disableBatching: boolean }` *(default: `true`)*: Disables batching so updates happen immediately.
 
 #### Returns:
 - **`ReactiveNode`** – A node that emits an incrementing value on each event emission.
@@ -38,7 +38,22 @@ triggeredClick.subscribe(value => console.log("Click Triggered:", value));
 // Every click logs: "Click Triggered: 1", "Click Triggered: 2", ...
 ```
 
-##### 2️⃣ Wrapping Multiple Observables (`interval`, `fromEvent`)
+##### 2️⃣ Using `trigger()` in a Computed Node
+```js
+import { trigger, createNode } from "dagify";
+import { fromEvent } from "rxjs";
+
+const click$ = fromEvent(document, "click");
+const triggerClick = trigger(click$);
+
+let message = "hello";
+const updateMessage = createNode(() => message, [triggerClick]);
+const someDep = createNode(x => console.log(x), updateMessage);
+
+// Each click will cause `updateMessage` to recompute and `someDep` to log the latest value.
+```
+
+##### 3️⃣ Wrapping Multiple Observables (`interval`, `fromEvent`)
 ```js
 import { trigger } from "dagify";
 import { interval, fromEvent } from "rxjs";
@@ -53,7 +68,7 @@ triggeredEvents.subscribe(value => console.log("Triggered Event:", value));
 // Every keydown logs: "Triggered Event: 3", ...
 ```
 
-##### 3️⃣ Ensuring Proper Cleanup (Prevent Memory Leaks)
+##### 4️⃣ Ensuring Proper Cleanup (Prevent Memory Leaks)
 ```js
 import { trigger } from "dagify";
 import { interval } from "rxjs";
@@ -64,8 +79,8 @@ const triggeredTimer = trigger(timer$);
 const sub = triggeredTimer.subscribe(value => console.log("Timer Triggered:", value));
 
 setTimeout(() => {
-    sub.unsubscribe();
-    console.log("Timer stopped.");
+  sub.unsubscribe();
+  console.log("Timer stopped.");
 }, 5000);
 ```
 
@@ -105,6 +120,4 @@ manualTrigger.next(); // Logs: "Manual Triggered: 2"
 - It **should not** be used with `ReactiveNode`, but instead with RxJS Observables.
 - `createTrigger()` allows manual event triggering via an `RxJS Subject`.
 - Proper **subscription cleanup** is required for long-lived observables.
-
-For more information, visit the Dagify documentation.
 
