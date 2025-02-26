@@ -1,4 +1,4 @@
-import {test} from "brittle";
+import {test, solo} from "brittle";
 import {createComposite} from "../../lib/composite/index.js";
 import {batch, createNode, nodeFactory} from "../../lib/node/index.js";
 import {concat, delay, firstValueFrom, map, of, take, toArray} from "rxjs";
@@ -670,4 +670,12 @@ test("Check equality of node", async t => {
     c.set(y);
     await sleep();
     t.absent(y.value);
+});
+
+test("Add dependency if dependency is singular should error use setDependencies for singular", async t => {
+    const computed = createNode((x) => x + 1, () => 5);
+    t.exception(() => computed.addDependency(() => 3));
+    computed.setDependencies(() => 3);
+    await sleep();
+    t.is(computed.value, 4);
 });
