@@ -45,7 +45,7 @@ If an effect should run only **once**, use `.once.subscribe`.
 
 **Example: Log a message only once per node update**
 ```javascript
-userId.once((id) => {
+userId.once.subscribe((id) => {
     console.log("User ID changed to:", id);
 });
 ```
