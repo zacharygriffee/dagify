@@ -40,8 +40,8 @@ userId.subscribe(async (id) => {
 
 ---
 
-### **(B) Using `.once()` for One-Time Effects**
-If an effect should run only **once**, use `.once()` or `.skip()`. 
+### **(B) Using `.once.subscribe()` for One-Time Effects**
+If an effect should run only **once**, use `.once.subscribe`. 
 
 **Example: Log a message only once per node update**
 ```javascript
@@ -110,7 +110,7 @@ fetchUser.subscribe(async (trigger) => {
 | Mistake | Why It’s a Problem | Correct Approach |
 |---------|-------------------|-----------------|
 | Performing side effects inside computed nodes | May execute multiple times unexpectedly | Use `.subscribe()` instead |
-| Fetching data without controlling execution | Can lead to race conditions and duplicate requests | Use `once()` or explicit trigger nodes |
+| Fetching data without controlling execution | Can lead to race conditions and duplicate requests | Use `once.subscribe()` or explicit trigger nodes |
 | Not batching updates | Causes excessive re-renders and performance issues | Use `batch()` to group updates |
 | Using stateful nodes for side effects directly | Makes debugging and testing harder | Separate stateful nodes from effect triggers |
 
@@ -123,7 +123,7 @@ fetchUser.subscribe(async (trigger) => {
 | **Run an effect only once** | Use `.once()` |
 | **Batch multiple updates** | Use `batch()` |
 | **Control async operations** | Use explicit trigger nodes |
-| **Avoid excessive executions** | Use `skip()`, `once()` |
+| **Avoid excessive executions** | Use `skip()`, `once.subscribe()` |
 
 ---
 
