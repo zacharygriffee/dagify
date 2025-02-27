@@ -94,7 +94,7 @@ const playerActionNode = createSinkNode(action => gameServer$.next(action), []);
 ```javascript
 const playerX = createNode(0);
 const playerY = createNode(0);
-const playerPosition = createNode(() => ({ x: playerX.value, y: playerY.value }));
+const playerPosition = createNode((pos) => pos, {x: playerx, y: playery});
 playerPosition.subscribe(pos => playerActionNode.set({ type: "move", position: pos }));
 ```
 
