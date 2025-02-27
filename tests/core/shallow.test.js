@@ -75,7 +75,7 @@ test("ShallowReactiveNode computed node updates on dependency change", async (t)
     a.set(7); // 7 + 3 = 10
 });
 
-solo("Create a shallow reactive node from createNode", t => {
+test("Create a shallow reactive node from createNode", t => {
     const node = createNode(42, {shallow: true});
     t.ok(node instanceof ShallowReactiveNode);
 })
