@@ -712,20 +712,3 @@ test("Ensure that rxjs observable can cause triggers in async computed", async t
     t.is(comp.value, 20);
 });
 
-// solo("Ensure that rxjs observable can cause triggers indirectly", async t => {
-//     let num = 0;
-//     const obs = new Subject();
-//
-//     const comp = createNode(async () => {
-//         return num + num;
-//     }, [obs]);
-//
-//     num = 5;
-//     obs.next();
-//     await sleep();
-//     t.is(comp.value, 10);
-//     num = 10;
-//     obs.next();
-//     await sleep();
-//     t.is(comp.value, 20);
-// });

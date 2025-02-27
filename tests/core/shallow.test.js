@@ -1,6 +1,7 @@
-import {test} from "brittle";
+import {solo, test} from "brittle";
 import {ShallowReactiveNode} from "../../lib/shallow-node/ShallowReactiveNode.js";
-import {sleep} from "../helpers/sleep.js"; // adjust the import path as needed
+import {sleep} from "../helpers/sleep.js";
+import {createNode} from "../../lib/node/index.js"; // adjust the import path as needed
 
 test("ShallowReactiveNode should initialize with a value", (t) => {
     const node = new ShallowReactiveNode(10);
@@ -73,3 +74,8 @@ test("ShallowReactiveNode computed node updates on dependency change", async (t)
     // the change should be detected and the computed node should update.
     a.set(7); // 7 + 3 = 10
 });
+
+solo("Create a shallow reactive node from createNode", t => {
+    const node = createNode(42, {shallow: true});
+    t.ok(node instanceof ShallowReactiveNode);
+})
