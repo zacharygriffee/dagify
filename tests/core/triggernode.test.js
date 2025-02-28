@@ -139,17 +139,39 @@ test('calls trigger when source is an EventEmitter', async t => {
     const values = [];
     const ee = new EventEmitter();
     const trigger = triggerFromEvent(ee, "hello");
-    const sub = trigger.subscribe(value => values.push(value));
+    trigger.subscribe(value => values.push(value));
 
     ee.emit("hello");
     ee.emit("hello");
 
     t.alike(values, [1, 2]);
-    sub.unsubscribe();
-    t.is(ee.listenerCount("hello"), 0);
-    const sub2 = trigger.subscribe(value => t.is(value, 0, "If listeners went to 0, reactivation of the trigger starts from zero"));
+    t.is(ee.listenerCount("hello"), 1);
     ee.emit("hello");
-    sub2.unsubscribe();
+    t.alike(values, [1, 2, 3])
+    trigger.complete();
+    t.is(ee.listenerCount("hello"), 0, "To clean the event emitters, the trigger complete must happen.");
+    ee.emit("hello");
+    t.alike(values, [1, 2, 3], "A trigger completed won't continue to trigger on event");
+});
+
+test("Trigger assigned to two nodes where one completes before the other.", async t => {
+    const ee = new EventEmitter();
+    const trigger = triggerFromEvent(ee, "hello");
+
+    const node1 = createNode(n => n, trigger);
+    const node2 = createNode(n => n, trigger);
+
+    ee.emit("hello");
+    await sleep();
+    t.is(node1.value, node2.value);
+    node1.complete();
+    await sleep();
+    ee.emit("hello");
+    await sleep();
+    t.is(node1.value, 1);
+    t.is(node2.value, 2);
+    node2.complete();
+    await sleep(30);
     t.is(ee.listenerCount("hello"), 0);
 });
 
@@ -189,4 +211,80 @@ test('throws an error when source is neither an EventEmitter nor an EventTarget'
     t.exception(() => {
         triggerFromEvent(notAnEventSource, 'someEvent');
     }, /triggerFromEvent must be an EventEmitter or event target./, 'Expected error to be thrown for invalid source');
+});
+
+/* --------------------------------------------------------------------------
+   ✅ Trigger Recovery Tests
+-------------------------------------------------------------------------- */
+
+/**
+ * Test that after unsubscribing all subscribers from the trigger,
+ * the trigger cleans up its source subscriptions, and then recovers
+ * (i.e. re-subscribes to its sources) when a new subscriber is added.
+ */
+test("trigger() recovers after all subscribers unsubscribe", async t => {
+    // Create an event source.
+    const event$ = new Subject();
+    // Create a trigger node from the event source.
+    const triggered = trigger(event$);
+
+    let valuesFirstSub = [];
+    // Subscribe to the trigger.
+    const sub1 = triggered.subscribe(value => valuesFirstSub.push(value));
+
+    // Emit an event.
+    event$.next();
+    await sleep(50);
+    t.alike(valuesFirstSub, [1], "First subscriber receives event (count = 1)");
+
+    // Unsubscribe from the trigger.
+    sub1.unsubscribe();
+    // Wait a bit to allow cleanup (subscriptions array becomes empty and count resets).
+    await sleep(50);
+
+    // Now subscribe again.
+    let valuesSecondSub = [];
+    const sub2 = triggered.subscribe(value => valuesSecondSub.push(value));
+
+    // Emit another event.
+    event$.next();
+    await sleep(50);
+    t.alike(valuesSecondSub, [1], "After recovery, new subscriber receives event (count resets to 1)");
+    sub2.unsubscribe();
+});
+
+/**
+ * Test that the trigger recovers multiple times.
+ * After each complete unsubscription, a new subscriber should receive fresh events.
+ */
+test("trigger() recovers repeatedly after unsubscribe", async t => {
+    const event$ = new Subject();
+    const triggered = trigger(event$);
+
+    // First subscription cycle.
+    let valuesCycle1 = [];
+    const sub1 = triggered.subscribe(value => valuesCycle1.push(value));
+    event$.next();
+    await sleep(30);
+    t.alike(valuesCycle1, [1], "Cycle 1: Received event count 1");
+    sub1.unsubscribe();
+    await sleep(30);
+
+    // Second subscription cycle.
+    let valuesCycle2 = [];
+    const sub2 = triggered.subscribe(value => valuesCycle2.push(value));
+    event$.next();
+    event$.next();
+    await sleep(30);
+    t.alike(valuesCycle2, [1, 2], "Cycle 2: Received events count 1 then 2");
+    sub2.unsubscribe();
+    await sleep(30);
+
+    // Third subscription cycle.
+    let valuesCycle3 = [];
+    const sub3 = triggered.subscribe(value => valuesCycle3.push(value));
+    event$.next();
+    await sleep(30);
+    t.alike(valuesCycle3, [1], "Cycle 3: Received event count resets to 1");
+    sub3.unsubscribe();
 });

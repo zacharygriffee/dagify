@@ -712,3 +712,11 @@ test("Ensure that rxjs observable can cause triggers in async computed", async t
     t.is(comp.value, 20);
 });
 
+test("Ensure that when a node completes or errors, it calls cleanup", async t => {
+    t.plan(2);
+    const completeThis = createNode(25, { onCleanup: () => t.pass() });
+    const errorThis = createNode(x => x, undefined, {onCleanup: (e) => t.ok(e)});
+
+    completeThis.complete();
+    errorThis.error(new Error("Okay"));
+});
