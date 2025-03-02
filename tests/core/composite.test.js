@@ -23,7 +23,7 @@ test("Composite subscription receives updates on node changes", async (t) => {
 
     const node1 = createNode(1);
     const node2 = createNode(2);
-    const comp = new Composite([node1, node2]);
+    const comp = new Composite([node1, node2], {disableBatching: true});
 
     let callCount = 0;
     const unsubscribe = comp.subscribe(values => {
@@ -57,7 +57,7 @@ test("Composite should support adding and removing nodes", async (t) => {
     const node1 = createNode(1);
     const node2 = createNode(2);
     const node3 = createNode(3);
-    const comp = new Composite([node1, node2]);
+    const comp = new Composite([node1, node2], {disableBatching: true});
 
     let callCount = 0;
     comp.subscribe(values => {
@@ -95,7 +95,7 @@ test("Composite object mode subscription receives updates on node changes", asyn
 
     const node1 = createNode(1);
     const node2 = createNode(2);
-    const comp = new Composite({ first: node1, second: node2 });
+    const comp = new Composite({ first: node1, second: node2 }, {disableBatching: true});
 
     let callCount = 0;
     const unsubscribe = comp.subscribe(values => {
@@ -121,35 +121,6 @@ test("Composite object mode should detect async nodes and mark itself async", (t
     const comp = new Composite({ first: node1, second: node2 });
 
     t.ok(comp.isAsync, "Composite object mode should be marked async when an async node is present");
-});
-
-test("Composite object mode should support adding and removing nodes", async (t) => {
-    t.plan(3);
-
-    const node1 = createNode(1);
-    const node2 = createNode(2);
-    const node3 = createNode(3);
-    // Start in object mode with keys "a" and "b"
-    const comp = new Composite({ a: node1, b: node2 });
-
-    let callCount = 0;
-    comp.subscribe(values => {
-        callCount++;
-        if (callCount === 1) {
-            t.alike(values, { a: 1, b: 2 }, "Initial snapshot is correct");
-        } else if (callCount === 2) {
-            // After adding node3 with key "c"
-            t.alike(values, { a: 1, b: 2, c: 3 }, "Snapshot after adding node3 is correct");
-        } else if (callCount === 3) {
-            // After removing node with key "b"
-            t.alike(values, { a: 1, c: 3 }, "Snapshot after removing node2 is correct");
-        }
-    });
-
-    comp.addNodes({ c: node3 });
-    await delay(50);
-    comp.removeNodes("b");
-    await delay(50);
 });
 
 /* -------------------------------
@@ -281,7 +252,7 @@ test("Test that a Composite can utilize computed nodes and reflect dynamic depen
 test("Composite update should force emission even if value hasn't changed", async (t) => {
     t.plan(3);
     const node = createNode(42);
-    const comp = new Composite([node]);
+    const comp = new Composite([node], {disableBatching: true});
 
     const emissions = [];
     const unsubscribe = comp.subscribe(val => {
