@@ -257,7 +257,7 @@ test("updateAsync updates nodes asynchronously", async t => {
     const b = createNode(([val]) => val * 2);
     // Override update() to simulate async behavior.
     b.update = async function() {
-        this.value = this.fn([a.value]);
+        this._value = this.fn([a.value]);
         return new Promise(resolve => setTimeout(resolve, 10));
     };
 
