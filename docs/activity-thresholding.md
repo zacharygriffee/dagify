@@ -44,7 +44,7 @@ sensorDataNode.visit(); // Called on each sensor update.
 ```
 ---
 **Important:**
-When using the activity thresholding mechanism (enabled via useNeuronElevation), note that each node sets up an internal decay timer (using setInterval) to decrement its activity level over time. This timer will keep running until the node is explicitly cleaned up.
+When using the activity thresholding mechanism (enabled via enableActivityThresholding), note that each node sets up an internal decay timer (using setInterval) to decrement its activity level over time. This timer will keep running until the node is explicitly cleaned up.
 Recommendation:
 Call the node’s complete() method (or an equivalent cleanup function) when the node is no longer needed. This ensures that the internal timer is cleared and prevents the process from hanging due to lingering timers.
 ---
