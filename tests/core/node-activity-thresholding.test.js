@@ -14,7 +14,7 @@ test("activity thresholding: compute triggers only after threshold visits", asyn
             return computeCount;
         },
         undefined,
-        { useNeuronElevation: true, activationThreshold: 3, decayInterval: 100 }
+        { enableActivityThresholding: true, activationThreshold: 3, decayInterval: 100 }
     );
 
     // On creation, compute() runs so value is 1.
@@ -54,7 +54,7 @@ test("activity thresholding: activity level resets after compute fires", async t
             return computeCount;
         },
         undefined,
-        { useNeuronElevation: true, activationThreshold: 3, decayInterval: 100 }
+        { enableActivityThresholding: true, activationThreshold: 3, decayInterval: 100 }
     );
 
     t.is(node.value, 1, "Initial compute is performed on creation");
@@ -83,7 +83,7 @@ test("activity thresholding: immediate compute when disabled", async t => {
             return computeCount;
         },
         undefined,
-        { useNeuronElevation: false } // activity thresholding is disabled
+        { enableActivityThresholding: false } // activity thresholding is disabled
     );
 
     t.is(node.value, 1, "Initial compute is performed on creation");
