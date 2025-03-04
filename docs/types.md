@@ -138,3 +138,240 @@ If the value does not pass validation, the node will typically trigger an error,
   When a node is created with a specified type (via `type` in the config), its value is validated automatically. If the value does not match the expected type, type checking errors are raised.
 
 This system provides a robust and flexible way to ensure data consistency and integrity across your reactive nodes.
+
+Below is the updated documentation that includes a note about the singleton used by dagify, as well as an example of how to integrate default types and utility functions for setting and getting types.
+
+---
+
+# TypeRegistry Documentation
+
+The `TypeRegistry` class provides a simple mechanism to register type validators and combine them into complex validators using union or intersection operations. Validators are functions that determine whether a given value meets the criteria for a type by returning `true` or `false`.
+
+Dagify creates a singleton instance under the variable `types` that is used globally to collect all registered types. This allows the entire application to share a common type registry.
+
+---
+
+## Overview
+
+- **Purpose:**  
+  Manage and combine type validators in a centralized registry.
+
+- **Key Features:**
+    - Register custom type validators.
+    - Retrieve and check if a type is registered.
+    - Create union validators where a value is valid if it meets at least one type.
+    - Create intersection validators where a value is valid only if it meets all types.
+    - Define new composite types based on custom validator logic.
+    - Support a singleton (`types`) for global access throughout the application (used in dagify).
+
+---
+
+## Class: `TypeRegistry`
+
+### Properties
+
+- **`types`**:  
+  A `Map` that stores type names as keys and their corresponding validator functions as values.
+
+---
+
+## Methods
+
+### `constructor()`
+
+Creates a new instance of the `TypeRegistry` and initializes an empty `Map` for storing types.
+
+---
+
+### `registerType(name, validator)`
+
+Registers a new type with a unique name and its validator function.
+
+- **Parameters:**
+    - `name` (`string`): A unique name for the type.
+    - `validator` (`Function`): A function that takes a value as input and returns `true` if the value is valid for the type, or `false` otherwise.
+
+- **Throws:**
+    - An `Error` if a type with the same name has already been registered.
+
+- **Example:**
+  ```js
+  const registry = new TypeRegistry();
+  registry.registerType("number", value => typeof value === "number");
+  ```
+
+---
+
+### `getType(name)`
+
+Retrieves the validator function for a registered type.
+
+- **Parameters:**
+    - `name` (`string`): The name of the registered type.
+
+- **Returns:**
+    - `Function`: The validator function for the specified type.
+    - If the type is not found, it returns `undefined`.
+
+- **Example:**
+  ```js
+  const numberValidator = registry.getType("number");
+  if (numberValidator) {
+    console.log(numberValidator(42)); // true
+  }
+  ```
+
+---
+
+### `hasType(name)`
+
+Checks whether a type is registered in the registry.
+
+- **Parameters:**
+    - `name` (`string`): The name of the type.
+
+- **Returns:**
+    - `boolean`: `true` if the type exists, `false` otherwise.
+
+- **Example:**
+  ```js
+  console.log(registry.hasType("number")); // true or false
+  ```
+
+---
+
+### `union(...typeNames)`
+
+Creates a union type validator from multiple registered types. The union validator returns `true` if the value satisfies **at least one** of the specified validators.
+
+- **Parameters:**
+    - `...typeNames` (`string`): One or more type names to combine.
+
+- **Returns:**
+    - `Function`: A new validator function for the union type.
+
+- **Throws:**
+    - An `Error` if any of the provided type names are not registered.
+
+- **Example:**
+  ```js
+  registry.registerType("string", value => typeof value === "string");
+  const stringOrNumber = registry.union("string", "number");
+  console.log(stringOrNumber("hello")); // true
+  console.log(stringOrNumber(100));     // true
+  console.log(stringOrNumber({}));      // false
+  ```
+
+---
+
+### `intersection(...typeNames)`
+
+Creates an intersection type validator from multiple registered types. The intersection validator returns `true` only if the value satisfies **all** of the specified validators.
+
+- **Parameters:**
+    - `...typeNames` (`string`): One or more type names to combine.
+
+- **Returns:**
+    - `Function`: A new validator function for the intersection type.
+
+- **Throws:**
+    - An `Error` if any of the provided type names are not registered.
+
+- **Example:**
+  ```js
+  // Assume a custom intersection requirement where a value must be both a number and positive
+  registry.registerType("positive", value => typeof value === "number" && value > 0);
+  const positiveNumber = registry.intersection("number", "positive");
+  console.log(positiveNumber(10));   // true
+  console.log(positiveNumber(-10));  // false
+  console.log(positiveNumber("10")); // false
+  ```
+
+---
+
+### `createType(name, validator)`
+
+A helper method to create and register a new type validator that might be a combination or a custom validator.
+
+- **Parameters:**
+    - `name` (`string`): The unique name for the new type.
+    - `validator` (`Function`): A custom validator function that defines the type.
+
+- **Behavior:**
+    - Internally calls `registerType` to add the new type to the registry.
+
+- **Example:**
+  ```js
+  // Create a new type that validates if a value is an even number
+  registry.createType("evenNumber", value => typeof value === "number" && value % 2 === 0);
+  console.log(registry.getType("evenNumber")(4)); // true
+  console.log(registry.getType("evenNumber")(5)); // false
+  ```
+
+---
+
+## Global Integration Example
+
+The following snippet demonstrates how dagify creates a global singleton instance of `TypeRegistry` under the variable `types`, registers default types, and provides utility functions to set and get types on nodes:
+
+```js
+import {TypeRegistry} from "./TypeRegistry.js";
+import {includeDefaultTypes} from "./defaultTypes.js";
+
+// Create a global singleton for types
+const types = new TypeRegistry();
+
+// Register a universal 'any' type that accepts any value
+types.registerType('any', () => true);
+
+// Include default types into the registry
+includeDefaultTypes(types);
+
+/**
+ * Sets the type for a given node.
+ * If the provided type is a function, it is executed with the global types registry.
+ *
+ * @param {Object} node - The node to set the type for.
+ * @param {string|Function} type - The type name or a function returning a type.
+ * @returns {Object} The updated node.
+ */
+const setType = (node, type) => {
+    if (typeof type === "function") {
+        type = type(types);
+    }
+    node.type = type;
+    return node;
+}
+
+/**
+ * Retrieves the type of a given node.
+ * Defaults to the 'any' type if no type is set.
+ *
+ * @param {Object} node - The node from which to retrieve the type.
+ * @returns {string|Function} The type of the node.
+ */
+const getType = (node) => {
+    return node.type || types.getType("any");
+}
+
+export { types, setType, getType };
+export { encodeValue, decodeValue };
+```
+
+**Key Points:**
+
+- **Singleton Instance:**  
+  Dagify uses the singleton instance `types` to register and manage all global type validators. This ensures a consistent type registry across the entire application.
+
+- **Default Types:**  
+  The example registers a default type `any` (which always returns `true`), then incorporates additional default types via the `includeDefaultTypes` function.
+
+- **Utility Functions:**
+    - `setType(node, type)`: Sets the type on a node. If `type` is a function, it executes the function with the global registry to determine the type.
+    - `getType(node)`: Retrieves the type from a node. If no type is set, it defaults to the `any` type from the global registry.
+
+---
+
+## Conclusion
+
+The `TypeRegistry` class and the singleton implementation in dagify provide a robust and flexible framework for type validation. By centralizing type definitions and enabling composite validations through union and intersection operations, developers can build modular and scalable validation logic for their applications. The global singleton `types` simplifies managing types across different parts of the system, ensuring consistency and reusability of validation logic.

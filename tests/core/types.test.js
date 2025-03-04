@@ -1,7 +1,9 @@
 // tests/types.test.js
 import test, {solo} from 'brittle';
 import b4a from 'b4a'
-import {types} from "../../lib/types/index.js";
+import {getType, setType, types} from "../../lib/types/index.js";
+import {createNode, NO_EMIT} from "../../lib/node/index.js";
+import {sleep} from "../helpers/sleep.js";
 
 // Helper function to get a validator from the registry.
 const v = typeName => types.getType(typeName)
@@ -130,3 +132,12 @@ test('binary type validation (alias for buffer)', t => {
     t.ok(v('binary')(buf), 'binary accepts a valid buffer')
     t.absent(v('binary')(12345), 'binary rejects non-buffer')
 })
+
+test("setType and getType flow", async t => {
+    const node = setType(createNode(), "string");
+    const type = getType(node);
+    await node.set(1234);
+    await sleep();
+    t.ok(node.value === NO_EMIT);
+    t.is(type, "string");
+});

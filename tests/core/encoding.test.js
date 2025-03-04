@@ -1,6 +1,11 @@
-import test from 'brittle';
+import test, {solo} from 'brittle';
 import {ReactiveNode} from "../../lib/node/ReactiveNode.js";
-import {createNode} from "../../lib/node/index.js";
+import {createNode, NO_EMIT} from "../../lib/node/index.js";
+import {setEncoding} from "../../lib/encoding/setEncoding.js";
+import cenc from "compact-encoding";
+import b4a from "b4a";
+import {sleep} from "../helpers/sleep.js";
+import {setType} from "../../lib/types/index.js";
 
 // Test that a static node with encoding properly encodes and decodes a value.
 test('encoding: static node encodes and decodes correctly', t => {
@@ -45,4 +50,26 @@ test("node encoding: non-buffer _encodedValue returns raw value", t => {
     node._encodedValue = "not a buffer"
     // The getter should return the raw _value.
     t.is(node.value, "hello", "Returns raw value when _encodedValue is not a Buffer")
+});
+
+test("setEncoding and getEncoding", async t => {
+    const node = setEncoding(createNode("hello"), "utf8");
+    const buf = cenc.encode(cenc.utf8, "hello");
+    t.ok(b4a.equals(buf, node.encodeForSink()));
+    t.is(node.valueEncoding, "utf8");
+});
+
+test("value arrives as an encoded value and type checked properly", async t => {
+    const node = setType(setEncoding(createNode("hello"), "utf8"), "string");
+    const buf = cenc.encode(cenc.utf8, "hello");
+    node.set(buf);
+    t.is(node.value, "hello");
+});
+
+test("value arrives as an encoded value with failing type check", async t => {
+    const node = setType(setEncoding(createNode(), "utf8"), "uint");
+    const buf = cenc.encode(cenc.utf8, "hello");
+    node.set(buf);
+    t.ok(node.value === NO_EMIT, "There is no value because hello does not succeed the uint type validator");
 })
+
