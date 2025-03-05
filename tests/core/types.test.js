@@ -148,3 +148,15 @@ test("Ability to pass a validator function as the type", async t => {
     t.ok(node.set("hello"));
     t.ok(typeof node.type === "function");
 });
+
+test("Even if initial value is undefined, will not emit if does not succeed type check", async t => {
+    t.plan(1);
+    const node = setType(createNode(undefined), value => typeof value === "string");
+    const unsub = node.subscribe(() => t.fail());
+    await sleep(100);
+    unsub.unsubscribe();
+    const unsub2 = node.subscribe(n => t.is(n, "hello"));
+    node.set("hello");
+    await sleep(100);
+    unsub2.unsubscribe();
+});
