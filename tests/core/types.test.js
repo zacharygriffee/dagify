@@ -141,3 +141,10 @@ test("setType and getType flow", async t => {
     t.ok(node.value === NO_EMIT);
     t.is(type, "string");
 });
+
+test("Ability to pass a validator function as the type", async t => {
+    const node = setType(createNode(), value => typeof value === "string");
+    t.absent(node.set(1234));
+    t.ok(node.set("hello"));
+    t.ok(typeof node.type === "function");
+});
