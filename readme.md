@@ -2,7 +2,13 @@
 
 Dagify is a reactive dependency graph library designed for powerful state management and reactive computation. This guide covers the core API for creating and managing reactive nodes, graphs, and composites.
 
-> Extensive documentation is coming soon for all the node types that exist. For now check out the tests for advanced stuff.
+Looking for details on specific node types or advanced topics? Dive into the docs:
+- [Activity Thresholding](docs/activity-thresholding.md)
+- [Command Nodes](docs/command-node.md)
+- [Bridge Nodes](docs/bridge-node.md)
+- [Encoding & Types](docs/encodings.md), [types](docs/types.md)
+- [Triggers & Effects](docs/trigger-node.md), [side effects](docs/side-effects.md)
+- [Migration](docs/migration-2.0.md)
 
 ## Installation
 
