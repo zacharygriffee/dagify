@@ -13,7 +13,7 @@ The public API exposes a singleton called **`types`** which is an instance of `T
 ### Public API
 
 ```js
-import { types } from "./lib/types/index.js";
+import { types } from "dagify/internal/types";
 ```
 
 The default types are automatically registered using the `includeDefaultTypes` function.

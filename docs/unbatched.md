@@ -67,16 +67,16 @@ dep.set(3);
 Certain commands require precise, real-time execution without batching:
 
 ```js
-import { createCommandNode } from 'dagify';
+import { command } from 'dagify/effect';
 
-const command = createCommandNode('critical-command', (data) => {
+const critical = command('critical-command', (data) => {
   console.log('Received critical command:', data);
 }, [], { disableBatching: true });
 
 // Sending multiple commands that must be processed immediately
-command.next('Initialize');
-command.next('Execute');
-command.next('Finalize');
+critical.next('Initialize');
+critical.next('Execute');
+critical.next('Finalize');
 ```
 
 ---

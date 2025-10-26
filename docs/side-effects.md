@@ -106,6 +106,29 @@ fetchUser.subscribe(async (trigger) => {
 
 ---
 
+### **(E) Using Effect Helpers for Structured Side Effects**
+Dagify provides sink/command/bridge helpers under `dagify/effect` so you can isolate side effects while keeping the rest of the graph pure.
+
+```javascript
+import { createNode } from "dagify";
+import { sink, command } from "dagify/effect";
+
+const logSink = sink(value => console.log("Log:", value));
+const submitUser = command("@user/submit", async payload => {
+  await api.saveUser(payload);
+  return { status: "ok" };
+});
+
+const formState = createNode({ name: "Anna" });
+formState.subscribe(value => logSink.set(value));
+submitUser.set(formState.value);
+```
+
+- `sink` nodes are terminal consumers that execute side effects.
+- `command` nodes provide validation/mapping hooks and can be driven via the shared dispatcher.
+
+---
+
 ## **3. Common Pitfalls and How to Avoid Them**
 | Mistake | Why It’s a Problem | Correct Approach |
 |---------|-------------------|-----------------|
@@ -113,6 +136,7 @@ fetchUser.subscribe(async (trigger) => {
 | Fetching data without controlling execution | Can lead to race conditions and duplicate requests | Use `once.subscribe()` or explicit trigger nodes |
 | Not batching updates | Causes excessive re-renders and performance issues | Use `batch()` to group updates |
 | Using stateful nodes for side effects directly | Makes debugging and testing harder | Separate stateful nodes from effect triggers |
+| Forgetting effect helpers | Leads to ad-hoc side-effect management | Use `dagify/effect` (`sink`, `command`, `bridge`, etc.) |
 
 ---
 
@@ -124,6 +148,7 @@ fetchUser.subscribe(async (trigger) => {
 | **Batch multiple updates** | Use `batch()` |
 | **Control async operations** | Use explicit trigger nodes |
 | **Avoid excessive executions** | Use `skip()`, `once.subscribe()` |
+| **Isolate effectful nodes** | Use helpers from `dagify/effect` |
 
 ---
 

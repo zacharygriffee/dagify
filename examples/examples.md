@@ -1,3 +1,23 @@
+### ⚡ 0. FRP Pipeline (Event Processing)
+
+```js
+import { createStore, map, filter, merge, from } from "dagify";
+
+const clicks = createStore(0);
+const apiResponses$ = from(fetch("/api/status")); // wraps a promise as a node
+
+const doubledClicks = map(clicks, n => n * 2);
+const evenClicks = filter(doubledClicks, n => n % 2 === 0);
+const feed = merge([evenClicks, apiResponses$]);
+
+feed.stream.subscribe(value => console.log("Pipeline emission:", value));
+
+clicks.set(1); // filtered out
+clicks.set(2); // emits 4
+```
+
+---
+
 ### 🔗 1. Complex State Management (Financial Dashboard)
 
 ```js

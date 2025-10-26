@@ -1,0 +1,63 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional tag (latest, beta, etc.)'
+        required: false
+        default: 'latest'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Bare Runtime
+        run: npm install -g bare
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Run Bare Tests
+        run: npm run bare:test
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Package (if needed)
+        run: echo "No build step needed"
+
+      - name: Publish to npm
+        run: |
+          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+            npm publish --access public --tag "${{ github.event.inputs.tag }}";
+          else
+            npm publish --access public;
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

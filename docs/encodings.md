@@ -7,7 +7,7 @@ ReactiveNode supports flexible encoding/decoding of node values to enable reliab
 ## Overview
 
 - **Purpose:**  
-  Encoding is used to serialize node values into binary form so they can be stored or transmitted. When a node is configured with a specific encoding (i.e. a value other than the default `"any"`), it automatically encodes the value on set and decodes it on get.
+  Encoding is used to serialize node values into binary form so they can be stored or transmitted. When a node is configured with a specific encoding (i.e. a value other than the default `"any"`), it automatically encodes the value on set and decodes it on get. Dagify exposes encoding helpers from the internal namespace (`dagify/internal/encoding`).
 
 - **Default Behavior:**  
   If no specific encoding is provided or if `"any"` is specified, the node does not perform any encoding or decoding and works directly with the raw value.

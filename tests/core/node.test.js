@@ -1,6 +1,7 @@
 import {test, skip, solo} from "brittle";
 import {createComposite} from "../../lib/composite/index.js";
 import {batch, createNode, nodeFactory} from "../../lib/node/index.js";
+import {ReactiveNode} from "../../lib/node/ReactiveNode.js";
 import {concat, delay, firstValueFrom, map, of, Subject, take, toArray} from "rxjs";
 import {sleep} from "../helpers/sleep.js";
 import b4a from "b4a";
@@ -164,6 +165,30 @@ test("batch mode delivers only final update", async t => {
     });
     await sleep(100);
     t.is(lastVal, 3, "Subscriber sees only the final value from batch");
+});
+
+test("batch flushes pending updates and resets state after error", async t => {
+    const source = createNode(0, null, { disableBatching: true });
+    const computed = createNode(([value]) => value, [source]);
+
+    let error;
+    try {
+        ReactiveNode.batch(() => {
+            source.set(1);
+            throw new Error("boom");
+        });
+    } catch (err) {
+        error = err;
+    }
+
+    t.ok(error instanceof Error, "Original error propagates from batch");
+    t.is(ReactiveNode.batchMode, false, "batchMode flag resets even when an error is thrown");
+    t.is(ReactiveNode.pendingUpdates.size, 0, "Pending updates set clears after flush");
+    await sleep(10);
+    t.is(computed.value, 1, "Dependent nodes still observe updates after error");
+
+    source.complete();
+    computed.complete();
 });
 
 test("force update on stateful node re-emits same value", async t => {

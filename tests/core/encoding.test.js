@@ -1,7 +1,7 @@
 import test, {solo} from 'brittle';
 import {ReactiveNode} from "../../lib/node/ReactiveNode.js";
 import {createNode, NO_EMIT} from "../../lib/node/index.js";
-import {setEncoding} from "../../lib/encoding/setEncoding.js";
+import {setEncoding, getEncoding} from "../../lib/encoding/setEncoding.js";
 import cenc from "compact-encoding";
 import b4a from "b4a";
 import {sleep} from "../helpers/sleep.js";
@@ -57,6 +57,11 @@ test("setEncoding and getEncoding", async t => {
     const buf = cenc.encode(cenc.utf8, "hello");
     t.ok(b4a.equals(buf, node.encodeForSink()));
     t.is(node.valueEncoding, "utf8");
+    t.is(getEncoding(node), "utf8", "Helper returns node's encoding");
+});
+
+test("getEncoding throws when node lacks valueEncoding", t => {
+    t.exception(() => getEncoding({}), "Guard rails protect against stale helpers");
 });
 
 test("value arrives as an encoded value and type checked properly", async t => {
@@ -72,4 +77,3 @@ test("value arrives as an encoded value with failing type check", async t => {
     node.set(buf);
     t.ok(node.value === NO_EMIT, "There is no value because hello does not succeed the uint type validator");
 })
-

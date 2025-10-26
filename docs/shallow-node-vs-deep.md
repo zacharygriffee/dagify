@@ -48,7 +48,7 @@ A **shallow reactive node** only tracks **top-level changes**. It **does not rea
 
 ### Example
 ```javascript
-import { createShallowNode } from "dagify";
+import { createShallowNode } from "dagify/shallow";
 
 const user = createShallowNode({ name: "Alice", details: { age: 30 } });
 
@@ -92,7 +92,8 @@ A **shallow computed node** derives its value from dependencies but **only emits
 
 ### Example
 ```javascript
-import { createShallowNode, createNode } from "dagify";
+import { createNode } from "dagify";
+import { createShallowNode } from "dagify/shallow";
 
 // Create a reactive node
 const count = createNode(0);
@@ -156,14 +157,15 @@ Dagify provides **dedicated functions** for shallow nodes:
 
 ### Creating a Shallow Reactive Node
 ```javascript
-import { createShallowNode } from "dagify";
+import { createShallowNode } from "dagify/shallow";
 
 const shallowUser = createShallowNode({ name: "Alice" });
 ```
 
 ### Creating a Shallow Computed Node
 ```javascript
-import { createShallowNode, createNode } from "dagify";
+import { createNode } from "dagify";
+import { createShallowNode } from "dagify/shallow";
 
 const count = createNode(0);
 const double = createShallowNode(() => ({ value: count.value * 2 }), [count]);

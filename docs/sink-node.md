@@ -1,13 +1,13 @@
 ## Sink Node
 
-The `createSinkNode` function creates a specialized reactive node intended to serve as a terminal consumer for side effects. Unlike typical computed nodes, a sink node is designed to react to upstream changes by executing side effects (such as logging, writing to a socket, or triggering external APIs) without being used as a dependency for further computations.
+The `sink` helper (exposed via `dagify/effect`) creates a specialized reactive node intended to serve as a terminal consumer for side effects. Unlike typical computed nodes, a sink node is designed to react to upstream changes by executing side effects (such as logging, writing to a socket, or triggering external APIs) without being used as a dependency for further computations.
 
 Sink nodes are ideal when you want to isolate side effects from your pure data transformations. They can have dependencies (so they can react to changes) but must never be wired as inputs for another computed node.
 
 ### Function Signature
 
 ```js
-createSinkNode(fnOrValue, dependencies, config)
+sink(fnOrValue, dependencies, config)
 ```
 
 ### Parameters
@@ -38,13 +38,14 @@ createSinkNode(fnOrValue, dependencies, config)
 ### Example Usage
 
 ```js
-import { createSinkNode, createNode } from "../node/index.js";
+import { sink } from "dagify/effect";
+import { createNode } from "dagify";
 
 // Create a dependency node
 const dependencyNode = createNode(10);
 
 // Create a sink node that logs the dependency's value to the console when updated.
-const loggerSink = createSinkNode(
+const loggerSink = sink(
   ([value]) => {
     console.log("Dependency updated:", value);
   },

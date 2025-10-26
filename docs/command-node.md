@@ -22,6 +22,12 @@
 - **Batching:**  
   **By default, batching is disabled** to ensure that each command is processed immediately. However, if your application can tolerate lossy commands—where rapid, successive commands may be coalesced—you can enable batching through configuration.
 
+> **Import tip:** Use the effect namespace to create command nodes:
+> ```js
+> import { command } from "dagify/effect";
+> const updateUser = command("@user/update", payload => payload);
+> ```
+
 ## Constructor
 
 ```js
@@ -134,6 +140,8 @@ function createCommandNode(commandName, handler, config = {}, context = 'global'
 ## Example Usage
 
 ```js
+import { command, dispatcher } from "dagify/effect";
+
 // Define a validator to ensure the payload has the proper format.
 const validator = (data) => {
   if (typeof data.x !== "number" || typeof data.y !== "number") {
@@ -150,17 +158,15 @@ const handler = async (data) => {
   return Math.sqrt(data.x * data.x + data.y * data.y);
 };
 
-// Create a CommandNode bound to a dispatcher.
-const cmdNode = createCommandNode("@player/position", handler, { validator, map });
+// Create a command node bound to the shared dispatcher.
+const cmdNode = command("@player/position", handler, { validator, map });
 
-// Trigger the command using set():
+// Trigger manually:
 cmdNode.set({ x: 3.2, y: 4.7 });
-
-// Or trigger via next() (for RxJS/Svelte compatibility):
 cmdNode.next({ x: 3.2, y: 4.7 });
 
-// Subscribers to cmdNode will receive the processed result (the magnitude)
-// once the handler resolves.
+// Or emit via dispatcher (equivalent effect):
+dispatcher.emit("@player/position", { x: 1, y: 1 });
 ```
 
 ## Summary

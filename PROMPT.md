@@ -53,7 +53,7 @@ You are an AI tasked with learning and demonstrating the use of Dagify, a reacti
 
 - **Code Example:**
   ```js
-  import { createShallowNode } from "dagify";
+  import { createShallowNode } from "dagify/shallow";
 
   const baseObj = { a: 1, b: 2 };
   const shallowNode = createShallowNode(
@@ -130,7 +130,7 @@ You are an AI tasked with learning and demonstrating the use of Dagify, a reacti
 ### 6. Advanced Node Types: Bridge and Execution Nodes
 - **BridgeNode Task:**
     - Create an input node and an output node.
-    - Use `createBridgeNode` to connect them and show how an update on the input reflects on the output.
+    - Use `effect.bridge` to connect them and show how an update on the input reflects on the output.
 
 - **ExecutionNode Task:**
     - Create an execution node that computes a value only when triggered.
@@ -138,19 +138,21 @@ You are an AI tasked with learning and demonstrating the use of Dagify, a reacti
 
 - **Code Example:**
   ```js
-  import { createBridgeNode, createNode, createExecutionNode } from "dagify";
+  import { createNode } from "dagify";
+  import { bridge } from "dagify/effect";
+  import { createExecutionNode } from "dagify/execution";
   import { Subject } from "rxjs";
 
   // BridgeNode example
   const inputNode = createNode(1);
   const outputNode = createNode((deps) => deps[0] + 10, [inputNode]);
-  const bridge = createBridgeNode(inputNode, outputNode);
+  const bridgeNode = bridge(inputNode, outputNode);
 
-  bridge.subscribe((value) => {
+  bridgeNode.subscribe((value) => {
     console.log("Bridge Node Value:", value);
   });
   // Update via bridge
-  bridge.set(5);
+  bridgeNode.set(5);
 
   // ExecutionNode example
   const execStream = new Subject();
@@ -206,7 +208,8 @@ You are an AI tasked with learning and demonstrating the use of Dagify, a reacti
 
 - **Code Example:**
   ```js
-  import { nodeFactory } from "dagify";
+  import { createNode } from "dagify";
+  import { nodeFactory } from "dagify/node";
 
   // Computed node factory: Sum of dependencies
   const computedFactory = nodeFactory(

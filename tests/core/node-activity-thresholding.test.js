@@ -96,3 +96,35 @@ test("activity thresholding: immediate compute when disabled", async t => {
 
     node.complete();
 });
+
+test("activity thresholding: dependency-driven updates respect threshold", async t => {
+    let computeCount = 0;
+    const source = createNode(0);
+    const node = createNode(
+        ([value]) => {
+            computeCount++;
+            return value;
+        },
+        [source],
+        { enableActivityThresholding: true, activationThreshold: 2, decayInterval: 1000 }
+    );
+
+    // Flush the initial dependency subscription, then reset counters to focus on future updates.
+    await sleep(10);
+    node.activityLevel = 0;
+    computeCount = 0;
+    t.is(node.value, 0, "Initial value mirrors source");
+
+    await source.set(1);
+    await sleep(10);
+    t.is(computeCount, 0, "Below-threshold updates only register visits");
+    t.is(node.value, 0, "Value remains unchanged until threshold reached");
+
+    await source.set(2);
+    await sleep(10);
+    t.is(computeCount, 1, "Threshold-crossing visit triggers compute");
+    t.is(node.value, 2, "Value updates after threshold");
+
+    node.complete();
+    source.complete();
+});

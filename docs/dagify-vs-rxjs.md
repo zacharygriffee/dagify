@@ -79,6 +79,7 @@ The **pool (Dagify) and the stream (RxJS) interact** naturally:
 import { webSocket } from "rxjs/webSocket";
 import { takeUntil, fromEvent } from "rxjs";
 import { createNode } from "dagify";
+import { sink } from "dagify/effect";
 
 const gameServer$ = webSocket("wss://game-server.com");
 const takeUntilSocketClose = socket => takeUntil(fromEvent(socket, "close").pipe(take(1)));
@@ -87,7 +88,7 @@ const gameStateNode = createNode(null, gameServer$.pipe(takeUntilSocketClose(gam
 
 #### **🎮 Player Actions (Dagify → RxJS)**
 ```javascript
-const playerActionNode = createSinkNode(action => gameServer$.next(action), []);
+const playerActionNode = sink(action => gameServer$.next(action), []);
 ```
 
 #### **🎯 Player Movement (Dagify updates state & transmits via RxJS)**

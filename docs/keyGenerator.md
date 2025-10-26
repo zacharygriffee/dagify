@@ -9,7 +9,7 @@ This module provides a simple mechanism for managing key generators. A key gener
 #### 1. **Importing the Default Generator**
 
 ```javascript
-import { defaultKeyGenerator } from "./defaultKeyGenerator.js";
+import { defaultKeyGenerator } from "dagify/internal/key-management";
 ```
 
 - **defaultKeyGenerator:**  

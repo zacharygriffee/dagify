@@ -1,6 +1,6 @@
 # BridgeNode Documentation
 
-The `BridgeNode` is a specialized reactive node that acts as a mediator between an input node and an output node. It is designed to forward incoming values to the input node while keeping its internal value synchronized with the output node's computed value.
+The `BridgeNode` is a specialized reactive node that acts as a mediator between an input node and an output node. It is designed to forward incoming values to the input node while keeping its internal value synchronized with the output node's computed value. In Dagify 2.0+, you typically create bridge nodes via the `dagify/effect` namespace (e.g. `import { bridge } from "dagify/effect"`).
 
 ## Overview
 
