@@ -51,8 +51,7 @@ Now, imagine a **fast-moving stream**:
 
 **Example in Code:**
 ```javascript
-import { fromEvent } from "rxjs";
-import { map, filter } from "rxjs/operators";
+import { filter, fromEvent, map } from "rxjs";
 
 const keyPress$ = fromEvent(document, "keydown").pipe(
   map(event => event.key),
