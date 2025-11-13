@@ -250,6 +250,52 @@ palette.subscribe(colors => {
 color2.set('green');
 ```
 
+### 5. **Serializing Async Work with Queued Nodes**
+
+Use `createQueuedNode` when a computed node performs asynchronous work and you need every transition to finish before the next one begins. Each dependency change (or direct `set`) is snapshotted and processed sequentially, so downstream consumers always see ordered results even if the underlying promise/observable resolves out of order.
+
+```js
+import { createNode, createQueuedNode } from 'dagify';
+
+const input = createNode(0);
+const sequenced = createQueuedNode(async (value) => {
+  // Simulate variable latency per payload.
+  const wait = value === 40 ? 50 : value === 30 ? 5 : 0;
+  await new Promise(resolve => setTimeout(resolve, wait));
+  return value;
+}, input);
+
+sequenced.subscribe(value => console.log('processed', value));
+
+input.set(40);
+input.set(30);
+input.set(10);
+// Logs: processed 40, processed 30, processed 10
+```
+
+Because the node uses an internal queue, rapid fire updates can build backpressure. If you expect bursty traffic, consider gating input or sharding across multiple queued nodes.
+
+#### Managing Backpressure
+
+Queued nodes can optionally bound their internal queue. Pass a `maxQueueLength` together with an `overflowStrategy` to decide what happens when new payloads arrive faster than the async work can finish.
+
+```js
+const throttled = createQueuedNode(fetchProfile, requests, {
+  maxQueueLength: 2,
+  overflowStrategy: "drop-oldest", // or "drop-newest" / "error"
+  onOverflow: ({ strategy, queueLength }) => {
+    console.warn(`queue is ${queueLength} deep, applying ${strategy}`);
+  }
+});
+```
+
+When the queue is full:
+- `drop-newest` (default) ignores the incoming payload.
+- `drop-oldest` evicts the oldest pending snapshot so the new one can run.
+- `error` propagates an overflow error through the node.
+
+The `onOverflow` callback runs every time the queue is full and can return `"enqueue"` to override the strategy and accept the payload anyway.
+
 ---
 
 ## License
