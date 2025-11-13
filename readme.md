@@ -81,6 +81,8 @@ const latest = switchLatest(selector$, inner => inner);
 const remote = from(fetch("/api/user"));      // wrap a promise/observable into a node
 ```
 
+> Dagify uses the `NO_EMIT` symbol internally to represent “no value yet.” FRP helpers ignore those emissions by default so your projectors only run when real data arrives. If you need to react to `NO_EMIT`, pass `{ triggerOnNoEmit: true }` in the helper options.
+
 ---
 
 ## Effect Helpers

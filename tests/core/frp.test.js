@@ -9,7 +9,8 @@ import {
     merge,
     switchLatest,
     from,
-    createStore
+    createStore,
+    NO_EMIT
 } from "../../index.js";
 
 test("ReactiveNode exposes stream observable", async t => {
@@ -29,6 +30,31 @@ test("map helper projects node values", async t => {
     source.set(3);
     await sleep(10);
     t.is(last, 6, "map applies projector");
+});
+
+test("map ignores NO_EMIT by default", async t => {
+    const source = createNode(NO_EMIT);
+    let calls = 0;
+    map(source, value => {
+        calls++;
+        return value;
+    });
+    await sleep(10);
+    t.is(calls, 0, "projector never runs for initial NO_EMIT");
+    source.set(5);
+    await sleep(10);
+    t.is(calls, 1, "projector runs once real values arrive");
+});
+
+test("map can opt into triggerOnNoEmit", async t => {
+    const source = createNode(NO_EMIT);
+    let calls = 0;
+    map(source, value => {
+        calls++;
+        return value;
+    }, { triggerOnNoEmit: true });
+    await sleep(10);
+    t.is(calls, 1, "projector runs even when source emits NO_EMIT");
 });
 
 test("filter helper suppresses values", async t => {

@@ -3,6 +3,7 @@
 ## [Unreleased]
 - Added `createQueuedNode` to serialize asynchronous node recomputations and provide deterministic ordering for promise/observable handlers.
 - Introduced optional `maxQueueLength`, `overflowStrategy`, and `onOverflow` controls so queued nodes can apply bounded buffering and custom overflow policies.
+- FRP helpers now ignore `NO_EMIT` sentinel emissions by default and expose a `{ triggerOnNoEmit: true }` option for cases where projectors must run on those values.
 
 ## [2.0.0]
 - Streamlined the core API around FRP primitives (`map`, `filter`, `combine`, `merge`, `switchLatest`, `from`, `createStore`) and exposed a `.stream` facade on every node.
