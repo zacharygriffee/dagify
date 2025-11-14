@@ -200,6 +200,35 @@ test("force update on stateful node re-emits same value", async t => {
     t.is(emissions.length, 2, "update() forces a re-emission even if value is unchanged");
 });
 
+test("deep nodes emit when nested data mutates in-place via update()", async t => {
+    const node = createNode({ stats: { count: 1 } });
+    const emissions = [];
+    node.subscribe(v => emissions.push(v.stats.count));
+
+    node.update(current => {
+        current.stats.count = 2;
+        return current;
+    });
+
+    await sleep(50);
+    t.is(emissions.length, 2, "subscriber sees the in-place mutation");
+    t.is(emissions[1], 2, "nested mutation value propagates");
+});
+
+test("deep nodes emit when nested data mutates in-place via set()", async t => {
+    const node = createNode({ stats: { count: 1 } });
+    const emissions = [];
+    node.subscribe(v => emissions.push(v.stats.count));
+
+    const current = node.value;
+    current.stats.count = 3;
+    node.set(current);
+
+    await sleep(50);
+    t.is(emissions.length, 2, "subscriber re-emits after set() with mutated value");
+    t.is(emissions[1], 3, "nested mutation via set() propagates");
+});
+
 test("update() on stateful node works with function and direct value", async t => {
     const state = createNode(50);
     let emitted;
