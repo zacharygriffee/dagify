@@ -29,6 +29,8 @@ export interface NodeConfig<T = unknown> {
   maxQueueLength?: number;
   overflowStrategy?: QueueOverflowStrategy;
   onOverflow?: (info: QueueOverflowInfo) => QueueOverflowDecision | void;
+  failFast?: boolean;
+  failFastPredicate?: (error: unknown) => boolean;
 }
 
 export type DependencySource<T = unknown> =

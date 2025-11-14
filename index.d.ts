@@ -8,6 +8,9 @@ export {
   isDagifyNode,
   identity,
   ensureNode,
+  setFailFastPredicate,
+  setFailFastEnabled,
+  defaultFatalErrorPredicate,
 } from "./lib/node/index.js";
 export type {
   DagifyNode,

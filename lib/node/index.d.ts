@@ -58,4 +58,12 @@ export declare function ensureNode<T>(
   config?: NodeConfig<T>
 ): DagifyNode<T>;
 
+export declare function setFailFastPredicate(
+  predicate: ((error: unknown) => boolean) | null
+): void;
+
+export declare function setFailFastEnabled(enabled: boolean): void;
+
+export declare function defaultFatalErrorPredicate(error: unknown): boolean;
+
 export * from "./key-management/index.js";

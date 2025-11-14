@@ -298,6 +298,30 @@ When the queue is full:
 
 The `onOverflow` callback runs every time the queue is full and can return `"enqueue"` to override the strategy and accept the payload anyway.
 
+### 6. **Fail-Fast Error Handling**
+
+Starting in v3, Dagify *fails fast* by default: if a node throws a programming error (e.g., `ReferenceError`, `SyntaxError`, `TypeError`, `AssertionError`), the error rethrows and crashes the runtime instead of quietly flowing through `dependencyError$`. This surfaces bugs immediately while still letting you opt out where needed.
+
+```js
+import {
+  createNode,
+  setFailFastEnabled,
+  setFailFastPredicate,
+} from 'dagify';
+
+// Keep crashes enabled in dev, but allow production to opt out if desired.
+setFailFastEnabled(process.env.NODE_ENV !== 'production');
+setFailFastPredicate((err) => err?.name !== 'ConnectionError');
+
+const socketNode = createNode(connectSocket, [], {
+  failFast: false, // this node handles transient network errors itself
+});
+```
+
+- `failFast` (per-node) overrides the global flag so long-lived I/O nodes can keep retrying while the rest of the graph fails fast.
+- `failFastPredicate` (config or global) customizes which errors are considered fatal. Pass `null` to restore the built-in fatal list.
+- `setFailFastEnabled(false)` returns to the legacy behavior (no crash) while keeping per-node overrides available.
+
 ---
 
 ## License

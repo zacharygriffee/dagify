@@ -1,6 +1,6 @@
 import {test, skip, solo} from "brittle";
 import {createComposite} from "../../lib/composite/index.js";
-import {batch, createNode, nodeFactory} from "../../lib/node/index.js";
+import {batch, createNode, nodeFactory, setFailFastEnabled, setFailFastPredicate} from "../../lib/node/index.js";
 import {ReactiveNode} from "../../lib/node/ReactiveNode.js";
 import {concat, delay, firstValueFrom, map, of, Subject, take, toArray} from "rxjs";
 import {sleep} from "../helpers/sleep.js";
@@ -815,4 +815,86 @@ test("Ensure that when a node completes or errors, it calls cleanup", async t =>
 
     completeThis.complete();
     errorThis.error(new Error("Okay"));
+});
+
+/* --------------------------------------------------------------------------
+   Fail-Fast Error Handling
+-------------------------------------------------------------------------- */
+
+test("programming errors throw when global fail-fast is enabled", async t => {
+    setFailFastEnabled(true);
+    const alwaysFatal = () => true;
+    setFailFastPredicate(alwaysFatal);
+    try {
+        await t.exception.all(() => {
+            createNode(() => {
+                throw new ReferenceError("explode");
+            });
+        }, /explode/);
+    } finally {
+        setFailFastEnabled(true);
+        setFailFastPredicate(null);
+    }
+});
+
+test("failFast:false overrides global fail-fast setting", t => {
+    setFailFastEnabled(true);
+    const alwaysFatal = () => true;
+    setFailFastPredicate(alwaysFatal);
+    try {
+        try {
+            createNode(() => {
+                throw new ReferenceError("should not crash");
+            }, [], { failFast: false });
+            t.pass("node creation succeeded without throwing");
+        } catch (err) {
+            t.fail(err);
+        }
+    } finally {
+        setFailFastEnabled(true);
+        setFailFastPredicate(null);
+    }
+});
+
+test("custom fail-fast predicate decides which errors are fatal", async t => {
+    setFailFastEnabled(true);
+    setFailFastPredicate(error => error?.name === "RangeError");
+    try {
+        await t.exception.all(() => {
+            createNode(() => {
+                throw new RangeError("range boom");
+            });
+        }, /range boom/);
+
+        try {
+            createNode(() => {
+                throw new TypeError("type survives");
+            });
+            t.pass("non-matching error skipped fail-fast");
+        } catch (err) {
+            t.fail(err);
+        }
+    } finally {
+        setFailFastPredicate(null);
+        setFailFastEnabled(true);
+    }
+});
+
+test("disabling global fail-fast reverts to legacy behavior", t => {
+    setFailFastEnabled(false);
+    const alwaysFatal = () => true;
+    setFailFastPredicate(alwaysFatal);
+    try {
+        try {
+            createNode(() => {
+                throw new ReferenceError("legacy");
+            });
+            t.pass("node creation did not throw while fail-fast disabled");
+        } catch (err) {
+            t.fail(err);
+        }
+    } finally {
+        setFailFastEnabled(true);
+        setFailFastPredicate(null);
+    }
 });

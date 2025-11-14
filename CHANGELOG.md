@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [3.0.0]
+- **Breaking:** Fail-fast error handling is now enabled by default. When node computations throw programmer errors (ReferenceError, SyntaxError, TypeError, RangeError, AssertionError, ERR_ASSERTION, etc.) Dagify rethrows instead of routing them through `dependencyError$`. Opt out globally with `setFailFastEnabled(false)` or per node via `failFast: false`.
+- Added `setFailFastEnabled`, `setFailFastPredicate`, and `defaultFatalErrorPredicate` exports so apps can declaratively control how fatal errors are identified.
+
 ## [2.0.4]
 - Deep nodes now react to mutations performed on class instances (and other non-plain objects) by cloning their enumerable properties for comparisons, ensuring state stored in custom classes triggers subscribers when mutated in place.
 
