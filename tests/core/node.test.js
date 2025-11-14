@@ -229,6 +229,45 @@ test("deep nodes emit when nested data mutates in-place via set()", async t => {
     t.is(emissions[1], 3, "nested mutation via set() propagates");
 });
 
+test("class instances emit when mutated in-place via update()", async t => {
+    class Score {
+        constructor(total) {
+            this.total = total;
+        }
+    }
+    const node = createNode(new Score(5));
+    const emissions = [];
+    node.subscribe(v => emissions.push(v.total));
+
+    node.update(instance => {
+        instance.total = 7;
+        return instance;
+    });
+
+    await sleep(50);
+    t.is(emissions.length, 2, "class instance mutations trigger subscribers through update()");
+    t.is(emissions[1], 7, "updated field propagates");
+});
+
+test("class instances emit when mutated in-place via set()", async t => {
+    class Score {
+        constructor(total) {
+            this.total = total;
+        }
+    }
+    const node = createNode(new Score(10));
+    const emissions = [];
+    node.subscribe(v => emissions.push(v.total));
+
+    const current = node.value;
+    current.total = 11;
+    node.set(current);
+
+    await sleep(50);
+    t.is(emissions.length, 2, "class instance mutations trigger subscribers through set()");
+    t.is(emissions[1], 11, "updated field propagates");
+});
+
 test("update() on stateful node works with function and direct value", async t => {
     const state = createNode(50);
     let emitted;

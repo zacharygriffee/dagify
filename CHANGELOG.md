@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## [2.0.4]
+- Deep nodes now react to mutations performed on class instances (and other non-plain objects) by cloning their enumerable properties for comparisons, ensuring state stored in custom classes triggers subscribers when mutated in place.
+
 ## [2.0.3]
 - Added `createQueuedNode` to serialize asynchronous node recomputations and provide deterministic ordering for promise/observable handlers.
 - Introduced optional `maxQueueLength`, `overflowStrategy`, and `onOverflow` controls so queued nodes can apply bounded buffering and custom overflow policies.
