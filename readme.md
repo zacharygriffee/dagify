@@ -298,7 +298,24 @@ When the queue is full:
 
 The `onOverflow` callback runs every time the queue is full and can return `"enqueue"` to override the strategy and accept the payload anyway.
 
-### 6. **Fail-Fast Error Handling**
+### 6. **Reference Nodes**
+
+Need the shallowest possible comparison—only emit when the reference itself changes? Use `createReferenceNode`. It treats every update as a simple `===` check, so two different instances emit even if their properties are identical, and reusing the same instance is suppressed.
+
+```js
+import { createReferenceNode } from 'dagify';
+
+const seat = createReferenceNode({ id: 1 });
+seat.subscribe(({ seat }) => console.log('seat updated', seat.id));
+
+const sameSeat = seat.value;
+seat.set(sameSeat);      // no emission (same reference)
+seat.set({ id: 1 });     // emits (new object)
+```
+
+Under the hood it’s just a special node configuration, so you can pass dependencies/config like any other `createNode` call.
+
+### 7. **Fail-Fast Error Handling**
 
 Starting in v3, Dagify *fails fast* by default: if a node throws a programming error (e.g., `ReferenceError`, `SyntaxError`, `TypeError`, `AssertionError`), the error rethrows and crashes the runtime instead of quietly flowing through `dependencyError$`. This surfaces bugs immediately while still letting you opt out where needed.
 

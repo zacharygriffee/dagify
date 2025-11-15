@@ -1,6 +1,6 @@
 import {test, skip, solo} from "brittle";
 import {createComposite} from "../../lib/composite/index.js";
-import {batch, createNode, nodeFactory, setFailFastEnabled, setFailFastPredicate} from "../../lib/node/index.js";
+import {batch, createNode, createReferenceNode, nodeFactory, setFailFastEnabled, setFailFastPredicate} from "../../lib/node/index.js";
 import {ReactiveNode} from "../../lib/node/ReactiveNode.js";
 import {concat, delay, firstValueFrom, map, of, Subject, take, toArray} from "rxjs";
 import {sleep} from "../helpers/sleep.js";
@@ -71,6 +71,20 @@ test("shallow nodes accept circular references without crashing", t => {
     } catch (err) {
         t.fail(err);
     }
+});
+
+test("reference nodes emit only on identity changes", async t => {
+    t.plan(2);
+    const seat = { id: 1 };
+    const refNode = createReferenceNode(seat);
+    let emissions = 0;
+    refNode.subscribe(() => emissions++);
+    refNode.set(seat);
+    await sleep(10);
+    t.is(emissions, 1, "Reference node did not emit when value reference stayed the same");
+    refNode.set({ id: 1 });
+    await sleep(10);
+    t.is(emissions, 2, "Reference node emitted when reference changed");
 });
 
 /* --------------------------------------------------------------------------

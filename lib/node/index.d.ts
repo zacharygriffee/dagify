@@ -40,6 +40,12 @@ export declare function batch(fn: () => void): void;
 
 export { dispatcher } from "../dispatcher/index.js";
 
+export declare function createReferenceNode<T = unknown>(
+  value: T,
+  dependencies?: DependencyCollection,
+  config?: NodeConfig<T>
+): DagifyNode<T>;
+
 export declare function nodeFactory<T = unknown>(
   value: T | ((...args: any[]) => T),
   depsOrActivator?:

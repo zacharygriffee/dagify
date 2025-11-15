@@ -11,6 +11,7 @@ export {
   setFailFastPredicate,
   setFailFastEnabled,
   defaultFatalErrorPredicate,
+  createReferenceNode,
 } from "./lib/node/index.js";
 export type {
   DagifyNode,

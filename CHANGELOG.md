@@ -2,7 +2,8 @@
 
 ## [Unreleased]
 
-## [3.0.1]
+## [3.1.0]
+- Add `reference` comparison mode (`createReferenceNode` helper + `{ reference: true }` config) so nodes emit only when the top-level reference changes.
 - Fix shallow/deep snapshotting so nodes can store circular structures (e.g., Corestore instances) without blowing the stack. `deepEqual` now short-circuits repeated comparisons.
 
 ## [3.0.0]
