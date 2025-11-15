@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## [3.2.0]
+- Expose `createReferenceNode` and `createShallowNode` from the root entry so consumers can import them directly from `dagify`.
+
 ## [3.1.0]
 - Add `reference` comparison mode (`createReferenceNode` helper + `{ reference: true }` config) so nodes emit only when the top-level reference changes.
 - Fix shallow/deep snapshotting so nodes can store circular structures (e.g., Corestore instances) without blowing the stack. `deepEqual` now short-circuits repeated comparisons.
