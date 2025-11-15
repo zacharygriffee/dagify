@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## [3.0.1]
+- Fix shallow/deep snapshotting so nodes can store circular structures (e.g., Corestore instances) without blowing the stack. `deepEqual` now short-circuits repeated comparisons.
+
 ## [3.0.0]
 - **Breaking:** Fail-fast error handling is now enabled by default. When node computations throw programmer errors (ReferenceError, SyntaxError, TypeError, RangeError, AssertionError, ERR_ASSERTION, etc.) Dagify rethrows instead of routing them through `dependencyError$`. Opt out globally with `setFailFastEnabled(false)` or per node via `failFast: false`.
 - Added `setFailFastEnabled`, `setFailFastPredicate`, and `defaultFatalErrorPredicate` exports so apps can declaratively control how fatal errors are identified.
