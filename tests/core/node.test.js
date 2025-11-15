@@ -60,6 +60,19 @@ test("next() works like set() for non-computed node", async t => {
     node.next(20);
 });
 
+test("shallow nodes accept circular references without crashing", t => {
+    t.plan(1);
+    const node = createNode(undefined, { shallow: true });
+    const circular = {};
+    circular.self = circular;
+    try {
+        node.set(circular);
+        t.pass("Circular reference stored successfully");
+    } catch (err) {
+        t.fail(err);
+    }
+});
+
 /* --------------------------------------------------------------------------
    Subscription Tests
 -------------------------------------------------------------------------- */
