@@ -39,7 +39,8 @@ import {
   merge,
   switchLatest,
   from,
-  createStore
+  createStore,
+  invokeOnNode
 } from "dagify";
 ```
 
@@ -47,7 +48,7 @@ Need something more specialized (bridge nodes, command nodes, shallow nodes, enc
 Import from the dedicated subpath instead:
 
 ```js
-import { bridge, command, sink } from "dagify/effect";
+import { bridge, command, sink, invokeOnNode } from "dagify/effect";
 import { createShallowNode } from "dagify/shallow";
 import { nodeFactory } from "dagify/node";
 ```
@@ -57,7 +58,7 @@ import { nodeFactory } from "dagify/node";
 ## Streaming Helpers
 
 - Every node exposes a `.stream` getter that returns an RxJS observable, making it easy to plug Dagify into existing FRP flows.
-- The FRP helper functions (`map`, `filter`, `combine`, `merge`, `switchLatest`, `from`, `createStore`) operate on nodes or observables and return new Dagify nodes.
+- The FRP helper functions (`map`, `filter`, `combine`, `merge`, `switchLatest`, `from`, `createStore`, `invokeOnNode`) operate on nodes or observables and return new Dagify nodes.
 
 ```js
 const counter = createStore(0);
@@ -102,6 +103,7 @@ const command = effect.command("@user/update", payload => {
 
 const bridge = effect.bridge(inputNode, outputNode);
 const manual = effect.createTrigger();
+const cleanup = invokeOnNode(remoteResourceNode, "cleanup");
 ```
 
 Each helper still returns Dagify nodes, so you can mix them with the FRP utilities above.

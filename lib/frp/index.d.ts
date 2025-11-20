@@ -50,3 +50,9 @@ export declare function createStore<T>(
   initialValue: T,
   config?: NodeConfig<T>
 ): DagifyNode<T>;
+
+export declare function invokeOnNode<T, K extends string | symbol>(
+  source: StreamLike<T>,
+  methodName: K,
+  ...args: unknown[]
+): DagifyNode<T>;
