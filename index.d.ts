@@ -70,6 +70,7 @@ export {
   switchLatest,
   from,
   createStore,
+  invokeOnNode,
 } from "./lib/frp/index.js";
 export type { FrpNodeOptions, StreamLike } from "./lib/frp/index.js";
 

@@ -10,6 +10,7 @@ import {
     switchLatest,
     from,
     createStore,
+    invokeOnNode,
     NO_EMIT
 } from "../../index.js";
 
@@ -137,4 +138,21 @@ test("from wraps observable and promise sources", async t => {
 test("createStore creates basic stateful node", t => {
     const store = createStore(10);
     t.is(store.value, 10, "store initializes with provided value");
+});
+
+test("invokeOnNode calls methods on emitted values", async t => {
+    const source = createNode(NO_EMIT);
+    const calls = [];
+
+    const sinkNode = invokeOnNode(source, "cleanup", "done");
+    t.ok(sinkNode.isSink, "invokeOnNode returns a sink node");
+
+    source.set({ label: "one", cleanup(arg) { calls.push([this.label, arg]); } });
+    await sleep(10);
+    source.set({ label: "two", cleanup(arg) { calls.push([this.label, arg]); } });
+    await sleep(10);
+    source.set({ note: "no method to call" });
+    await sleep(10);
+
+    t.alike(calls, [["one", "done"], ["two", "done"]], "cleanup method invoked when present");
 });

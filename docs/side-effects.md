@@ -129,6 +129,26 @@ submitUser.set(formState.value);
 
 ---
 
+### **(F) Auto-invoking Cleanup Hooks**
+Need to trigger a method on whatever the node emits (e.g., a `cleanup()` function)? Use `invokeOnNode` to keep the invocation isolated inside a sink node.
+
+```javascript
+import { createNode, NO_EMIT, invokeOnNode } from "dagify";
+
+const resource = createNode(NO_EMIT);
+const disposeSideEffect = invokeOnNode(resource, "cleanup");
+
+resource.set({
+  cleanup() {
+    console.log("Tearing down resource");
+  }
+});
+```
+
+- The sink only calls the target method when it exists, letting you emit structured payloads without mixing side effects into the rest of the graph.
+
+---
+
 ## **3. Common Pitfalls and How to Avoid Them**
 | Mistake | Why It’s a Problem | Correct Approach |
 |---------|-------------------|-----------------|
@@ -136,7 +156,7 @@ submitUser.set(formState.value);
 | Fetching data without controlling execution | Can lead to race conditions and duplicate requests | Use `once.subscribe()` or explicit trigger nodes |
 | Not batching updates | Causes excessive re-renders and performance issues | Use `batch()` to group updates |
 | Using stateful nodes for side effects directly | Makes debugging and testing harder | Separate stateful nodes from effect triggers |
-| Forgetting effect helpers | Leads to ad-hoc side-effect management | Use `dagify/effect` (`sink`, `command`, `bridge`, etc.) |
+| Forgetting effect helpers | Leads to ad-hoc side-effect management | Use `dagify/effect` (`sink`, `command`, `bridge`, `invokeOnNode`, etc.) |
 
 ---
 
