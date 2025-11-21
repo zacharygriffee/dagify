@@ -37,17 +37,16 @@ visit(): void
 **Description:**  
 This method is called to "register" an update or activity on the node. Each call to `visit()` increments the node’s internal `activityLevel` and updates the `lastVisited` timestamp. Once the `activityLevel` reaches the `activationThreshold`, the node triggers a computation (by calling `compute()`) and then resets the `activityLevel` to 0.
 
-**Usage Example:**
+### Usage Example
 ```js
 // Assume sensorDataNode is a ReactiveNode with activity thresholding enabled.
 sensorDataNode.visit(); // Called on each sensor update.
 ```
----
-**Important:**
-When using the activity thresholding mechanism (enabled via enableActivityThresholding), note that each node sets up an internal decay timer (using setInterval) to decrement its activity level over time. This timer will keep running until the node is explicitly cleaned up.
+
+#### Important
+When using the activity thresholding mechanism (enabled via `enableActivityThresholding`), note that each node sets up an internal decay timer (using `setInterval`) to decrement its activity level over time. This timer will keep running until the node is explicitly cleaned up.
 Recommendation:
-Call the node’s complete() method (or an equivalent cleanup function) when the node is no longer needed. This ensures that the internal timer is cleared and prevents the process from hanging due to lingering timers.
----
+Call the node’s `complete()` method (or an equivalent cleanup function) when the node is no longer needed. This ensures that the internal timer is cleared and prevents the process from hanging due to lingering timers.
 
 ### `startDecay()`
 
@@ -61,13 +60,12 @@ This method sets up an interval timer (using `setInterval`) to decrement the nod
 
 **Usage:**  
 The method is automatically called during node initialization if activity thresholding is enabled.
----
-**Important:**
-When using the activity thresholding mechanism, note that each node sets up an internal decay timer (using setInterval) to decrement its activity level over time. This timer will keep running until the node is explicitly cleaned up.
-Recommendation:
-Call the node’s complete() method (or an equivalent cleanup function) when the node is no longer needed. This ensures that the internal timer is cleared and prevents the process from hanging due to lingering timers.
 
----
+#### Important
+When using the activity thresholding mechanism, note that each node sets up an internal decay timer (using `setInterval`) to decrement its activity level over time. This timer will keep running until the node is explicitly cleaned up.
+Recommendation:
+Call the node’s `complete()` method (or an equivalent cleanup function) when the node is no longer needed. This ensures that the internal timer is cleared and prevents the process from hanging due to lingering timers.
+
 
 ## Example Usage
 

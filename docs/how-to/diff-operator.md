@@ -57,16 +57,16 @@ An RxJS operator function that takes an observable stream of arrays (`T[]`) and 
 For each pair of arrays:
 
 1. **Added Elements:**
-  - If an element exists in the new array at an index where the previous array has no element (or `undefined`), it is considered **added**.
+   - If an element exists in the new array at an index where the previous array has no element (or `undefined`), it is considered **added**.
 
-2. **Removed Elements:**
-  - If an element exists in the previous array at an index where the new array has no element (or `undefined`), it is considered **removed**.
+1. **Removed Elements:**
+   - If an element exists in the previous array at an index where the new array has no element (or `undefined`), it is considered **removed**.
 
-3. **Changed Elements:**
-  - If both arrays have values at the same index but the provided equality checker (or strict equality by default) returns `false`, then the new element is treated as **added** and the old element as **removed**.
+1. **Changed Elements:**
+   - If both arrays have values at the same index but the provided equality checker (or strict equality by default) returns `false`, then the new element is treated as **added** and the old element as **removed**.
 
-4. **Unchanged Elements:**
-  - If the elements at the same index are considered equal (per the equality checker), they are marked as **unchanged**.
+1. **Unchanged Elements:**
+   - If the elements at the same index are considered equal (per the equality checker), they are marked as **unchanged**.
 
 ---
 
