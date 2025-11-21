@@ -36,6 +36,39 @@ Prevent leaks, wedged timers, and stale edges when tearing down Dagify graphs.
 - When swapping SDK clients/sockets/storage handles in `createReferenceNode`, optionally call custom `close()`/`destroy()` on the old handle before `set(newHandle)`.
 - After swapping, consider `complete()` on the outbound node if no further emissions are expected.
 
+## Disposable resource patterns
+Use these patterns when nodes create handles that must be torn down before replacing them.
+
+### Singleton handle per dependency
+```js
+const makeHandle = depNode => {
+  let current = null;
+  return createNode(async dep => {
+    if (current) await current.dispose?.();
+    current = new DisposableThing(dep);
+    return current; // emits the new handle
+  }, depNode);
+};
+```
+- Always dispose the previous handle before creating the next.
+- Return the handle (often via `createReferenceNode`) so downstream consumers see identity changes, not internal state churn.
+
+### Pool of disposables
+```js
+const makePool = depNode => {
+  const handles = new Map();
+  return createNode(async dep => {
+    const id = dep.id;
+    if (handles.has(id)) await handles.get(id).dispose?.();
+    const next = new DisposableThing(dep);
+    handles.set(id, next);
+    return handles;
+  }, depNode);
+};
+```
+- Track disposables in a `Set`/`Map` keyed by id. Dispose before replacing.
+- Expose a `cleanupAll()` helper to iterate and dispose everything on teardown; call it from the module’s `dispose()` or `complete()`.
+
 ## Testing & dev ergonomics
 - Provide a `dispose()` helper per module that:
   - cancels timers
