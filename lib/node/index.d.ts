@@ -27,6 +27,9 @@ export declare function createNode<T = unknown>(
   config?: NodeConfig<T>
 ): DagifyNode<T>;
 
+/**
+ * Create a node that processes dependency changes sequentially, ensuring async work finishes in order.
+ */
 export declare function createQueuedNode<T = unknown>(
   fn:
     | ((...args: any[]) => T)
@@ -36,10 +39,14 @@ export declare function createQueuedNode<T = unknown>(
   config?: NodeConfig<T>
 ): DagifyNode<T>;
 
+/** Collapse multiple updates in a single tick into one emission. */
 export declare function batch(fn: () => void): void;
 
 export { dispatcher } from "../dispatcher/index.js";
 
+/**
+ * Create a node that only emits when the reference changes (`===`), skipping structural comparisons.
+ */
 export declare function createReferenceNode<T = unknown>(
   value: T,
   dependencies?: DependencyCollection,

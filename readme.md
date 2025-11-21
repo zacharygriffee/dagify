@@ -2,13 +2,14 @@
 
 Dagify is a reactive dependency graph library designed for powerful state management and reactive computation. This guide covers the core API for creating and managing reactive nodes, graphs, and composites.
 
-Looking for details on specific node types or advanced topics? Dive into the docs:
-- [Activity Thresholding](docs/activity-thresholding.md)
-- [Command Nodes](docs/command-node.md)
-- [Bridge Nodes](docs/bridge-node.md)
-- [Encoding & Types](docs/encodings.md), [types](docs/types.md)
-- [Triggers & Effects](docs/trigger-node.md), [side effects](docs/side-effects.md)
-- [Migration](docs/migration-2.0.md)
+Documentation highlights (see `docs/index.md` for the full map):
+- Quickstart: `docs/getting-started/quickstart.md`
+- Concepts: dependency shapes, NO_EMIT, batching, shallow vs deep (`docs/concepts/`)
+- How-to: RxJS/Svelte interop, diff operator, activity thresholding, side-effects (`docs/how-to/`)
+- Reference: command/bridge/filter/sink/trigger/event nodes, encodings, types (`docs/reference/`)
+- Guides & migration: `docs/guides/`
+- Best practices & debugging: `docs/best-practices.md`, `docs/observability-and-debugging.md`
+- Agents & handoffs: `docs/agents/primer.md`
 
 ## Installation
 
@@ -20,11 +21,14 @@ npm install dagify
 
 ## Top-Level Imports
 
-The root `dagify` entry now focuses on the FRP essentials:
+The root `dagify` entry now focuses on the FRP essentials plus a few ergonomics helpers:
 
 ```js
 import {
   createNode,
+  createQueuedNode,
+  createReferenceNode,
+  createShallowNode,
   batch,
   NO_EMIT,
   createGraph,
@@ -44,7 +48,7 @@ import {
 } from "dagify";
 ```
 
-Need something more specialized (bridge nodes, command nodes, shallow nodes, encoders, etc.)?  
+Need something more specialized (bridge nodes, command nodes, encoders, effect namespace, internals)?  
 Import from the dedicated subpath instead:
 
 ```js
@@ -126,7 +130,7 @@ These APIs remain available for advanced scenarios while keeping the main surfac
 
 ## Migration
 
-Coming from 1.x? See [`docs/migration-2.0.md`](docs/migration-2.0.md) for a summary of breaking changes and update steps.
+Coming from 1.x? See [`docs/guides/migration-2.0.md`](docs/guides/migration-2.0.md) for a summary of breaking changes and update steps.
 
 ---
 

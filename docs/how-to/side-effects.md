@@ -41,7 +41,7 @@ userId.subscribe(async (id) => {
 ---
 
 ### **(B) Using `.once.subscribe()` for One-Time Effects**
-If an effect should run only **once**, use `.once.subscribe`. 
+If an effect should run only **once**, use `.once.subscribe`.
 
 **Example: Log a message only once per node update**
 ```javascript

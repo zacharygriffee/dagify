@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [3.2.2]
+- Doc reorg and new guides (cleanup strategy, reference/shallow node guidance, effect/FRP/graph references) plus agentic examples.
+- Added markdownlint tooling with relaxed config and wiring to lint docs; upgraded markdownlint-cli to 0.46.0 to address glob advisory.
+
 ## [3.2.0]
 - Expose `createReferenceNode` and `createShallowNode` from the root entry so consumers can import them directly from `dagify`.
 

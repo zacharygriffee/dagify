@@ -1,8 +1,9 @@
-# Shallow vs. Regular Reactive Nodes in Dagify
+# Shallow vs. Regular vs. Reference Nodes in Dagify
 
-Dagify supports **two types of reactive nodes**:  
-1. **Regular (Deep) Reactive Nodes**  
-2. **Shallow Reactive Nodes** (Including **Shallow Computed Nodes**)  
+Dagify supports three common sensitivity models:
+1. **Regular (Deep) Reactive Nodes**
+2. **Shallow Reactive Nodes** (including shallow computed)
+3. **Reference Nodes** (emit only on `===` change)
 
 The difference lies in **how reactivity propagates** and how **computed nodes evaluate changes**.
 
@@ -132,28 +133,51 @@ class ShallowComputedNode extends ShallowReactiveNode {
 
 ---
 
-## 4. Key Differences at a Glance
-| Feature               | Regular Reactive Node | Shallow Reactive Node | Shallow Computed Node |
-|----------------------|----------------------|----------------------|----------------------|
-| **Tracks Nested Properties** | ✅ Yes | ❌ No | ❌ No |
-| **Triggers on Property Mutation** | ✅ Yes | ❌ No | ❌ No |
-| **Triggers on Whole Object Change** | ✅ Yes | ✅ Yes | ✅ Yes |
-| **Uses Deep Comparison?** | ✅ Yes | ❌ No (Shallow Comparison) | ❌ No (Shallow Comparison) |
-| **Reactivity for Computed Nodes** | ✅ Always updates | ✅ Only updates if shallowly unequal | ✅ Only updates if shallowly unequal |
-| **Performance** | ⚠ Slightly slower | 🚀 Faster | 🚀 Faster |
-| **Use Case** | Fine-grained reactivity (UI, computed nodes) | Large objects, cache, static data | Derived state with optimized reactivity |
+## 4. Reference Nodes
+### Definition
+`createReferenceNode` only emits when the **top-level reference changes** (`===`). No structural comparison is performed.
+
+### Behavior
+- Treats reuse of the same instance as **no change**.
+- Emits on any new reference, even if the shape/content is identical.
+- Accepts dependencies/config like `createNode`, so you can build reference-based computed nodes.
+
+### Example
+```javascript
+import { createReferenceNode } from "dagify";
+
+const connection = createReferenceNode({ socket: socketA });
+connection.subscribe(conn => console.log("connection changed", conn.socket.id));
+
+connection.set(connection.value); // no emission
+connection.set({ socket: socketA }); // emits (new reference)
+```
+
+### Use Cases
+- **Imperative integrations**: network/storage handles, SDK clients, connection/session objects.
+- **Identity-sensitive flows**: when downstream consumers care about instance identity, not structural equality.
+- **Performance**: avoid deep/shallow checks entirely; move churn to explicit reference swaps.
+
+## 5. Key Differences at a Glance
+| Feature | Regular Reactive Node | Shallow Reactive Node | Reference Node |
+|---------|----------------------|-----------------------|----------------|
+| Tracks nested props | ✅ Yes | ❌ No | ❌ No |
+| Emits on nested mutation | ✅ Yes | ❌ No | ❌ No |
+| Emits on new reference | ✅ Yes | ✅ Yes | ✅ Yes (only trigger) |
+| Comparison | Deep | Shallow | Reference (`===`) |
+| Typical use | Fine-grained UI/business logic | Large objects, caches, derived snapshots | External handles (network/storage), identity-sensitive consumers, performance-critical flows |
 
 ---
 
-## 5. When to Use Which?
-- **Use Regular Reactive Nodes** if you need **deep reactivity** (e.g., UI components, computed nodes).
-- **Use Shallow Reactive Nodes** for **performance-sensitive cases** (e.g., large datasets, caching layers, reducing unnecessary computations).
-- **Use Shallow Computed Nodes** when **deriving state from other nodes but want to avoid redundant updates.**
+## 6. When to Use Which?
+- **Regular nodes**: fine-grained reactivity (UI, complex computed graphs).
+- **Shallow nodes**: large objects or derived snapshots where top-level swaps are enough.
+- **Reference nodes**: imperative resources (network/storage/clients), or when you want emissions only on identity change.
 
 ---
 
-## 6. API Usage
-Dagify provides **dedicated functions** for shallow nodes:
+## 7. API Usage
+Dagify provides dedicated helpers:
 
 ### Creating a Shallow Reactive Node
 ```javascript
@@ -169,4 +193,12 @@ import { createShallowNode } from "dagify/shallow";
 
 const count = createNode(0);
 const double = createShallowNode(() => ({ value: count.value * 2 }), [count]);
+```
+
+### Creating a Reference Node
+```javascript
+import { createReferenceNode } from "dagify";
+
+const storage = createReferenceNode(makeStorageClient());
+storage.set(makeStorageClient()); // emits because the instance changed
 ```
