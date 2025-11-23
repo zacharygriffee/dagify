@@ -1,3 +1,5 @@
 TODO.md
 node_modules/
 dist/
+# External strategy docs (local clones not tracked)
+docs/strategies/neon-notes/
