@@ -30,5 +30,7 @@ Use this index as the single source of truth for Dagify. It is organized for bot
   - [Recipes](examples/recipes.md) plus runnable samples in `examples/`.
 - **Agents**
   - [Agent primer](agents/primer.md) for LLM/human handoffs and the repository prompt references.
+- **Strategies**
+  - [Agent strategies](strategies/index.md): external playbooks and Neon Notes integration (local clones are gitignored).
 
 If you are looking for a specific export, start with the reference pages or the Quickstart, which links out to deeper sections as you go.

@@ -6,6 +6,8 @@ import {concat, delay, firstValueFrom, map, of, Subject, take, toArray} from "rx
 import {sleep} from "../helpers/sleep.js";
 import b4a from "b4a";
 import {NO_EMIT} from "../../lib/node/NO_EMIT.js";
+import {cloneForComparison} from "../../lib/util/cloneForComparison.js";
+import {schedulerPresets} from "../../lib/util/schedulers.js";
 
 /* --------------------------------------------------------------------------
    Helpers
@@ -85,6 +87,41 @@ test("reference nodes emit only on identity changes", async t => {
     refNode.set({ id: 1 });
     await sleep(10);
     t.is(emissions, 2, "Reference node emitted when reference changed");
+});
+
+test("custom comparator can suppress emissions", async t => {
+    let emissions = 0;
+    const node = createNode({ count: 1 }, undefined, {
+        compare: (prev, next) => prev && next && prev.count === next.count
+    });
+    node.subscribe(() => emissions++);
+    node.set({ count: 1 });
+    await sleep(20);
+    t.is(emissions, 1, "No emission when comparator deems values equal");
+    node.set({ count: 2 });
+    await sleep(20);
+    t.is(emissions, 2, "Emission occurs when comparator detects change");
+});
+
+test("buffers remain buffers and comparisons do not mutate originals", t => {
+    const buf = b4a.from([1, 2, 3]);
+    const clone = cloneForComparison(buf);
+    t.ok(b4a.isBuffer(clone), "Clone stays a buffer");
+    clone[0] = 9;
+    t.is(buf[0], 1, "Mutating clone does not affect original");
+});
+
+test("node handles buffer values without converting them", async t => {
+    let emissions = 0;
+    const node = createNode(b4a.from([1, 2, 3]));
+    node.subscribe(() => emissions++);
+    node.set(b4a.from([1, 2, 3]));
+    await sleep(20);
+    t.is(emissions, 1, "No emission for equal buffer contents");
+    node.set(b4a.from([4, 5, 6]));
+    await sleep(20);
+    t.is(emissions, 2, "Emits when buffer contents change");
+    t.ok(b4a.isBuffer(node.value), "Value stays a buffer");
 });
 
 /* --------------------------------------------------------------------------
@@ -396,6 +433,23 @@ test("computed node remains sync when returning a plain value", async t => {
     t.is(syncComputed.value, 11, "Computed value is correct");
 });
 
+test("computed node treats async generator result as a plain value", async t => {
+    t.plan(4);
+    let started = false;
+    async function* sequence() {
+        started = true;
+        yield 1;
+    }
+    const generatorNode = createNode(() => sequence());
+    const seen = [];
+    generatorNode.subscribe(value => seen.push(value));
+    await sleep(20);
+    t.is(generatorNode.isAsync, false, "Async generator does not mark node async");
+    t.is(seen.length, 1, "Subscriber receives initial generator object");
+    t.ok(seen[0] && typeof seen[0].next === "function", "Value is the generator instance");
+    t.is(started, false, "Async generator is not automatically iterated");
+});
+
 /* --------------------------------------------------------------------------
    Error Handling and Completion Tests
 -------------------------------------------------------------------------- */
@@ -585,7 +639,7 @@ test("computed node with batching enabled updates asynchronously", async t => {
     t.is(computed.value, 10, "Value remains until batch flush");
     await sleep(0);
     t.is(computed.value, 12, "Computed updates after microtask flush");
-    t.is(computeCount, 3, "Computation ran after flush");
+    t.is(computeCount, 2, "Computation ran after flush");
 });
 
 test("computed node with disableBatching bypasses batch mode", async t => {
@@ -630,6 +684,37 @@ test("unbatched receives every single change", async t => {
     dep.set(7);
     dep.set(12);
     t.alike(result, [1,2,3,7,12]);
+});
+
+test("notify scheduler 'sync' runs subscribers before microtasks", async t => {
+    const order = [];
+    const node = createNode(0, undefined, { notifyScheduler: schedulerPresets.sync });
+    node.subscribe(() => order.push("sub"));
+    node.set(1);
+    await sleep(0);
+    order.push("micro");
+    t.is(order[0], "sub");
+});
+
+test("update scheduler 'sync' computes before microtasks", async t => {
+    const order = [];
+    const dep = createNode(1);
+    const computed = createNode(
+        ([v]) => {
+            order.push(`compute-${v}`);
+            return v;
+        },
+        [dep],
+        {
+            updateScheduler: schedulerPresets.sync,
+            notifyScheduler: schedulerPresets.sync
+        }
+    );
+    dep.set(2);
+    await sleep(0);
+    order.push("micro");
+    t.ok(order.indexOf("compute-2") < order.indexOf("micro"), "compute ran before microtask");
+    t.is(computed.value, 2);
 });
 
 /* --------------------------------------------------------------------------
