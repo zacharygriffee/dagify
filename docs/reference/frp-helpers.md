@@ -20,7 +20,7 @@ import {
 - `combine(sources, projector?, options?)`: accept an array or object of sources; projector gets positional args (array) or values (object).
 - `merge(sources, options?)`: fan-in multiple sources, emitting as they arrive.
 - `switchLatest(source, projector?, options?)`: swap to the latest inner stream/node (like RxJS `switchMap`).
-- `from(input, options?)`: wrap a node, observable, promise, or value as a Dagify node.
+- `from(input, options?)`: wrap a node, observable, promise, or value as a Dagify node. Cold or hot RxJS observables are shared internally and synchronous completions are handled safely (no TDZ surprises).
 - `createStore(initial, config?)`: stateful node alias with good defaults for FRP flows.
 - `invokeOnNode(source, methodName, ...args)`: call a method on a node/observable and emit the result (or `NO_EMIT`).
 

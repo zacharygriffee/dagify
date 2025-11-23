@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## [3.2.3]
+- Fix RxJS interop: `fromObservable` / `from` now guard sync-completing cold observables to avoid TDZ errors when wrapping `of(...)`-style sources. (#15)
+
 ## [3.2.2]
 - Doc reorg and new guides (cleanup strategy, reference/shallow node guidance, effect/FRP/graph references) plus agentic examples.
 - Added markdownlint tooling with relaxed config and wiring to lint docs; upgraded markdownlint-cli to 0.46.0 to address glob advisory.
