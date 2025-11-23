@@ -904,6 +904,13 @@ test("Ensure that rxjs observable can cause triggers", async t => {
     t.is(comp.value, 20);
 });
 
+test("Cold rxjs observable completes safely", async t => {
+    const obs = of(5); // emits synchronously then completes
+    const comp = createNode(([x]) => x * 2, [obs]);
+    await sleep(0);
+    t.is(comp.value, 10, "computed node initializes from cold observable without TDZ errors");
+});
+
 test("Ensure that rxjs observable can cause triggers in async computed", async t => {
     const obs = new Subject();
 
