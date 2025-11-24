@@ -1,6 +1,7 @@
 import { test } from "brittle";
 import { createNode, createQueuedNode, NO_EMIT } from "../../index.js";
 import { Observable } from "rxjs";
+import { PassThrough } from "stream";
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -147,4 +148,58 @@ test("queued node onOverflow can override strategy", async (t) => {
     await delay(120);
     t.alike(seen, [1, 2, 3], "override 'enqueue' allows all payloads through");
     t.is(calls.length > 0, true, "onOverflow should be invoked when queue is full");
+});
+
+test("queued node streamMode handles multi-chunk streams", async (t) => {
+    t.plan(1);
+    const upstream = createNode(0);
+    const received = [];
+    const stream = new PassThrough({ objectMode: true });
+
+    const queued = createQueuedNode(() => {
+        // Wrap the stream in an observable.
+        return new Observable((observer) => {
+            stream.on("data", (chunk) => observer.next(chunk.toString()));
+            stream.on("error", (err) => observer.error(err));
+            stream.on("end", () => observer.complete());
+            return () => {
+                stream.off("data", () => {});
+                stream.off("error", () => {});
+                stream.off("end", () => {});
+            };
+        });
+    }, upstream, { streamMode: true });
+
+    queued.subscribe((value) => {
+        if (value === NO_EMIT) return;
+        received.push(value);
+    });
+
+    upstream.set(1);
+    stream.write("a");
+    stream.write("b");
+    stream.end("c");
+
+    await delay(50);
+    t.alike(received, ["a", "b", "c"], "all stream chunks delivered in order");
+});
+
+test("queued node streamMode can drop oldest on overflow", async (t) => {
+    const upstream = createNode(0);
+    const observed = [];
+    const queued = createQueuedNode(() => new Observable((observer) => {
+        observer.next("one");
+        observer.next("two");
+        observer.next("three");
+        observer.complete();
+    }), upstream, { streamMode: true, streamMaxBuffer: 1, streamOverflowStrategy: "drop-oldest" });
+
+    queued.subscribe((value) => {
+        if (value === NO_EMIT) return;
+        observed.push(value);
+    });
+
+    upstream.set(1);
+    await delay(50);
+    t.alike(observed, ["three"], "only latest chunk retained when buffer is 1 with drop-oldest");
 });

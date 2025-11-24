@@ -64,6 +64,12 @@ import { nodeFactory } from "dagify/node";
 - Every node exposes a `.stream` getter that returns an RxJS observable, making it easy to plug Dagify into existing FRP flows.
 - The FRP helper functions (`map`, `filter`, `combine`, `merge`, `switchLatest`, `from`, `createStore`, `invokeOnNode`) operate on nodes or observables and return new Dagify nodes.
 - `from` shares cold RxJS observables under the hood and tolerates synchronous completion (e.g., `of(1)`) without TDZ issues.
+- Need to cross between async iterables/Node streams and Dagify? Use `dagify/streams`:
+  - `fromAsyncIterable(iterable, { initialValue, nodeConfig })`
+  - `fromReadableStream(stream, { initialValue, nodeConfig })` (Node/streamx readables)
+  - `toAsyncIterable(nodeOrObservable, { maxBuffer, dropNoEmit, onOverflow, signal })`
+  - `toReadableStream(nodeOrObservable, { maxBuffer, highWaterMark, objectMode })`
+- Queued nodes can opt into stream-aware handling with `{ streamMode: true, streamMaxBuffer, streamOverflowStrategy, streamOnOverflow }` to avoid first-chunk teardown and to cap buffering.
 
 ```js
 const counter = createStore(0);
@@ -85,6 +91,17 @@ const total = combine([nodeA, nodeB], (a, b) => a + b);
 const merged = merge([updates$, nodeC]);      // observables or nodes
 const latest = switchLatest(selector$, inner => inner);
 const remote = from(fetch("/api/user"));      // wrap a promise/observable into a node
+
+// Converting between streams/async iterables and Dagify:
+import {
+  fromAsyncIterable,
+  fromReadableStream,
+  toAsyncIterable,
+  toReadableStream
+} from "dagify/streams";
+
+const nodeFromStream = fromReadableStream(fs.createReadStream("file.txt", { encoding: "utf8" }));
+const iterable = toAsyncIterable(nodeFromStream, { maxBuffer: 16, dropNoEmit: true });
 ```
 
 > Dagify uses the `NO_EMIT` symbol internally to represent “no value yet.” FRP helpers ignore those emissions by default so your projectors only run when real data arrives. If you need to react to `NO_EMIT`, pass `{ triggerOnNoEmit: true }` in the helper options.

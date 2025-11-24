@@ -20,6 +20,7 @@
     "./trigger": "./lib/trigger/index.js",
     "./sink": "./lib/sink-node/index.js",
     "./operators": "./lib/operators/index.js",
+    "./streams": "./lib/streams/index.js",
     "./frp": "./lib/frp/index.js",
     "./effect": "./lib/effect/index.js",
     "./internal/types": "./lib/types/index.js",

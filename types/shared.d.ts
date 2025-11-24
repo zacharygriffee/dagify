@@ -32,6 +32,12 @@ export interface NodeConfig<T = unknown> {
   failFast?: boolean;
   failFastPredicate?: (error: unknown) => boolean;
   reference?: boolean;
+  streamMode?: boolean;
+  streamMaxBuffer?: number;
+  streamOverflowStrategy?: QueueOverflowStrategy | "enqueue";
+  streamOnOverflow?: (
+    info: { queueLength: number; incoming: unknown }
+  ) => QueueOverflowDecision | "enqueue" | void;
 }
 
 export type DependencySource<T = unknown> =
@@ -98,6 +104,35 @@ export interface QueueOverflowInfo {
   strategy: QueueOverflowStrategy;
   queueLength: number;
   incoming: unknown;
+}
+
+export interface FromAsyncIterableOptions<T = unknown> {
+  initialValue?: T;
+  nodeConfig?: NodeConfig<T>;
+}
+
+export interface ToAsyncIterableOverflowInfo<T = unknown> {
+  bufferLength: number;
+  value: T;
+}
+
+export type ToAsyncIterableOverflowAction =
+  | "drop-newest"
+  | "drop-oldest"
+  | "error"
+  | void;
+
+export interface ToAsyncIterableOptions<T = unknown> {
+  maxBuffer?: number;
+  onOverflow?: (info: ToAsyncIterableOverflowInfo<T>) => ToAsyncIterableOverflowAction;
+  signal?: AbortSignal;
+  dropNoEmit?: boolean;
+}
+
+export interface ToReadableStreamOptions<T = unknown>
+  extends ToAsyncIterableOptions<T> {
+  highWaterMark?: number;
+  objectMode?: boolean;
 }
 
 export interface ShallowReactiveNode<T = unknown> extends DagifyNode<T> {}
