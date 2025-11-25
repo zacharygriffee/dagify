@@ -63,6 +63,7 @@ import { nodeFactory } from "dagify/node";
 
 - Every node exposes a `.stream` getter that returns an RxJS observable, making it easy to plug Dagify into existing FRP flows.
 - The FRP helper functions (`map`, `filter`, `combine`, `merge`, `switchLatest`, `from`, `createStore`, `invokeOnNode`) operate on nodes or observables and return new Dagify nodes.
+- Need to normalize “async-ish” values (observables, promises, zero-arg functions) to a single emission? `floorAsync(input)` (from `dagify` or `dagify/frp`) resolves the first value and returns an observable.
 - `from` shares cold RxJS observables under the hood and tolerates synchronous completion (e.g., `of(1)`) without TDZ issues.
 - Need to cross between async iterables/Node streams and Dagify? Use `dagify/streams`:
   - `fromAsyncIterable(iterable, { initialValue, nodeConfig })`

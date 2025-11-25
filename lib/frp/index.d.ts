@@ -41,6 +41,17 @@ export declare function switchLatest<T, TResult = T>(
   options?: FrpNodeOptions<TResult>
 ): DagifyNode<TResult>;
 
+export type FloorAsyncInput<T = unknown> =
+  | T
+  | Promise<FloorAsyncInput<T>>
+  | Observable<FloorAsyncInput<T>>
+  | DagifyNode<FloorAsyncInput<T>>
+  | (() => FloorAsyncInput<T> | Promise<FloorAsyncInput<T>>);
+
+export declare function floorAsync<T = unknown>(
+  input: FloorAsyncInput<T>
+): Observable<T>;
+
 export declare function from<T>(
   input: StreamLike<T> | Promise<T> | T,
   options?: FrpNodeOptions<T>

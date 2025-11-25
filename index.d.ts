@@ -40,8 +40,13 @@ export {
   from,
   createStore,
   invokeOnNode,
+  floorAsync,
 } from "./lib/frp/index.js";
-export type { FrpNodeOptions, StreamLike } from "./lib/frp/index.js";
+export type {
+  FrpNodeOptions,
+  StreamLike,
+  FloorAsyncInput,
+} from "./lib/frp/index.js";
 
 /** Stream/async-iterable interop helpers. */
 export {
