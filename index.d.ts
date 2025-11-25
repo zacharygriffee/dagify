@@ -42,3 +42,17 @@ export {
   invokeOnNode,
 } from "./lib/frp/index.js";
 export type { FrpNodeOptions, StreamLike } from "./lib/frp/index.js";
+
+/** Stream/async-iterable interop helpers. */
+export {
+  fromAsyncIterable,
+  fromReadableStream,
+  toAsyncIterable,
+  toReadableStream,
+} from "./lib/streams/index.js";
+export type {
+  FromAsyncIterableOptions,
+  ToAsyncIterableOptions,
+  ToAsyncIterableOverflowInfo,
+  ToReadableStreamOptions,
+} from "./types/shared";

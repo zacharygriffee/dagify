@@ -2,7 +2,8 @@ import {test, skip, solo} from "brittle";
 import {createComposite} from "../../lib/composite/index.js";
 import {batch, createNode, createReferenceNode, nodeFactory, setFailFastEnabled, setFailFastPredicate} from "../../lib/node/index.js";
 import {ReactiveNode} from "../../lib/node/ReactiveNode.js";
-import {concat, delay, firstValueFrom, map, of, Subject, take, toArray} from "rxjs";
+import {concat, delay, firstValueFrom, from, map, of, Subject, take, toArray} from "rxjs";
+import {PassThrough} from "stream";
 import {sleep} from "../helpers/sleep.js";
 import b4a from "b4a";
 import {NO_EMIT} from "../../lib/node/NO_EMIT.js";
@@ -200,6 +201,28 @@ test("computedNode does not allow manual set()", t => {
     const a = createNode(2);
     const double = createNode(([a]) => a * 2, [a]);
     t.exception(() => double.set(10), "Manual set() is not allowed on computed nodes");
+});
+
+test("computedNode keeps async iterable streams alive when subscribing", async t => {
+    t.plan(2);
+    const stream = new PassThrough({ objectMode: true });
+    const node = createNode(() => from(stream));
+
+    await sleep(10);
+
+    const received = [];
+    node.subscribe(value => received.push(value));
+
+    // Allow any internal scheduling to run without tearing down the stream.
+    await sleep(10);
+    t.is(stream.destroyed, false, "stream is not prematurely destroyed");
+
+    stream.write("hello");
+    stream.write("world");
+    stream.end();
+
+    await sleep(20);
+    t.alike(received, ["hello", "world"], "all stream chunks are delivered");
 });
 
 test("computed node does not emit duplicate updates for deep equality", async t => {
