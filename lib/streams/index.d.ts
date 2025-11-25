@@ -1,4 +1,3 @@
-import type { Observable } from "rxjs";
 import type { Readable } from "stream";
 import type {
   DagifyNode,

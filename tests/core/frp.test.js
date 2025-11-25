@@ -11,6 +11,7 @@ import {
     from,
     createStore,
     invokeOnNode,
+    floorAsync,
     NO_EMIT
 } from "../../index.js";
 
@@ -155,4 +156,28 @@ test("invokeOnNode calls methods on emitted values", async t => {
     await sleep(10);
 
     t.alike(calls, [["one", "done"], ["two", "done"]], "cleanup method invoked when present");
+});
+
+test("floorAsync unwraps nested async sources", async t => {
+    const subject = new Subject();
+    const received = [];
+
+    floorAsync(() => subject).subscribe(value => received.push(value));
+
+    subject.next(Promise.resolve(of("done")));
+    subject.next("ignored");
+
+    await sleep(10);
+    t.alike(received, ["done"], "first emission is flattened to a single value");
+});
+
+test("floorAsync accepts Dagify nodes", async t => {
+    const node = createNode();
+    const received = [];
+
+    floorAsync(node).subscribe(value => received.push(value));
+    node.set(Promise.resolve(42));
+
+    await sleep(10);
+    t.alike(received, [42], "node streams are treated like observables and promises resolve");
 });
